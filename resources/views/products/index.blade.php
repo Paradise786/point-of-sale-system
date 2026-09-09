@@ -103,9 +103,9 @@
                             </td>
                             <td class="px-5 py-4">
                                 <span class="font-black {{ $product->quantity <= 0 ? 'text-rose-600' : ($product->is_low_stock ? 'text-amber-600' : 'text-slate-800') }}">
-                                    {{ $product->quantity }}
+                                    {{ $product->quantity }} {{ $product->unit->short_code ?? 'pcs' }}
                                 </span>
-                                <span class="text-[10px] text-slate-400"> (Min: {{ $product->alert_quantity }})</span>
+                                <span class="text-[10px] text-slate-400 block">Min: {{ $product->alert_quantity }}</span>
                             </td>
                             <td class="px-5 py-4">
                                 @if ($product->quantity <= 0)

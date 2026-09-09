@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
+use App\Models\StockMovement;
 use App\Models\Vendor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -83,7 +84,21 @@ class PurchaseController extends Controller
                 // Stock automatically increases
                 $product = Product::lockForUpdate()->find($item['product_id']);
                 if ($product) {
+                    $beforeQty = $product->quantity;
                     $product->increment('quantity', $item['quantity']);
+                    $afterQty = $beforeQty + $item['quantity'];
+
+                    // Record Stock Movement History
+                    StockMovement::create([
+                        'product_id' => $product->id,
+                        'type' => 'purchase',
+                        'quantity' => $item['quantity'],
+                        'before_quantity' => $beforeQty,
+                        'after_quantity' => $afterQty,
+                        'reference' => $referenceNo,
+                        'notes' => 'Stock in via Purchase Invoice',
+                    ]);
+
                     // Also update purchase price to reflect latest cost
                     $product->update(['purchase_price' => $item['purchase_price']]);
                 }

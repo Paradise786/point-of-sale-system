@@ -9,7 +9,9 @@ class Product extends Model
     protected $fillable = [
         'name',
         'barcode',
+        'sku',
         'category_id',
+        'unit_id',
         'purchase_price',
         'selling_price',
         'quantity',
@@ -27,6 +29,11 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
     }
 
     public function purchaseItems()

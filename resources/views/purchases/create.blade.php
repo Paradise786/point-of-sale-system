@@ -23,17 +23,23 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Vendor Select -->
-                <div>
-                    <label for="vendor_id" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Vendor / Supplier <span class="text-rose-500">*</span></label>
-                    <select name="vendor_id" id="vendor_id" required 
-                            class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition @error('vendor_id') border-rose-400 @enderror">
-                        <option value="">Select Vendor</option>
-                        @foreach ($vendors as $vendor)
-                            <option value="{{ $vendor->id }}" {{ old('vendor_id') == $vendor->id ? 'selected' : '' }}>
-                                {{ $vendor->name }} ({{ $vendor->phone ?? 'No phone' }})
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="vendor_id" class="text-xs font-bold uppercase tracking-wider text-slate-600">Vendor / Supplier <span class="text-rose-500">*</span></label>
+                        <button type="button" onclick="openQuickVendorModal()" class="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                            <i class="fa-solid fa-plus-circle"></i> + Add New Vendor
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select name="vendor_id" id="vendor_id" required 
+                                class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition @error('vendor_id') border-rose-400 @enderror">
+                            <option value="">Select Vendor</option>
+                            @foreach ($vendors as $vendor)
+                                <option value="{{ $vendor->id }}" {{ old('vendor_id') == $vendor->id ? 'selected' : '' }}>
+                                    {{ $vendor->name }} ({{ $vendor->phone ?? 'No phone' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                     @error('vendor_id')
                         <p class="text-xs text-rose-500 mt-1 font-medium">{{ $message }}</p>
                     @enderror
@@ -229,5 +235,109 @@
     document.addEventListener('DOMContentLoaded', function() {
         addItemRow();
     });
+</script>
+
+<!-- Quick Add Vendor Modal -->
+<div id="quickVendorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in-95">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+                <h3 class="font-bold text-base text-slate-800">Add New Vendor</h3>
+                <p class="text-xs text-slate-500">Add supplier on the fly without page reload</p>
+            </div>
+            <button type="button" onclick="closeQuickVendorModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="quickVendorForm" onsubmit="submitQuickVendor(event)" class="space-y-3">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Vendor / Company Name *</label>
+                <input type="text" id="qv_name" required placeholder="e.g. TechSupply Ltd."
+                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Phone Number</label>
+                <input type="text" id="qv_phone" placeholder="e.g. 0300-1234567"
+                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Email</label>
+                <input type="email" id="qv_email" placeholder="vendor@example.com"
+                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Address / City</label>
+                <input type="text" id="qv_address" placeholder="Lahore, Karachi, etc."
+                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeQuickVendorModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button type="submit" id="qv_btn" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow">Save & Select Vendor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openQuickVendorModal() {
+        const modal = document.getElementById('quickVendorModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('qv_name').focus();
+    }
+
+    function closeQuickVendorModal() {
+        const modal = document.getElementById('quickVendorModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    async function submitQuickVendor(e) {
+        e.preventDefault();
+        const btn = document.getElementById('qv_btn');
+        btn.disabled = true;
+        btn.innerText = 'Saving...';
+
+        const payload = {
+            name: document.getElementById('qv_name').value,
+            phone: document.getElementById('qv_phone').value,
+            email: document.getElementById('qv_email').value,
+            address: document.getElementById('qv_address').value,
+        };
+
+        try {
+            const res = await fetch("{{ route('vendors.store') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+            if (data.success && data.vendor) {
+                const vendorSelect = document.getElementById('vendor_id');
+                const opt = new Option(`${data.vendor.name} (${data.vendor.phone || 'No phone'})`, data.vendor.id, true, true);
+                vendorSelect.add(opt);
+                closeQuickVendorModal();
+                document.getElementById('quickVendorForm').reset();
+            } else {
+                alert(data.message || 'Error saving vendor.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to save vendor. Please check all fields.');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Save & Select Vendor';
+        }
+    }
 </script>
 @endsection

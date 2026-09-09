@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Unit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -44,8 +45,9 @@ class ProductController extends Controller
     public function create(): View
     {
         $categories = Category::orderBy('name')->get();
+        $units = Unit::orderBy('name')->get();
 
-        return view('products.create', compact('categories'));
+        return view('products.create', compact('categories', 'units'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -53,7 +55,9 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'barcode' => ['required', 'string', 'max:255', 'unique:products,barcode'],
+            'sku' => ['nullable', 'string', 'max:100'],
             'category_id' => ['required', 'exists:categories,id'],
+            'unit_id' => ['nullable', 'exists:units,id'],
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer', 'min:0'],
@@ -70,8 +74,9 @@ class ProductController extends Controller
     public function edit(Product $product): View
     {
         $categories = Category::orderBy('name')->get();
+        $units = Unit::orderBy('name')->get();
 
-        return view('products.edit', compact('product', 'categories'));
+        return view('products.edit', compact('product', 'categories', 'units'));
     }
 
     public function update(Request $request, Product $product): RedirectResponse
@@ -79,7 +84,9 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'barcode' => ['required', 'string', 'max:255', 'unique:products,barcode,'.$product->id],
+            'sku' => ['nullable', 'string', 'max:100'],
             'category_id' => ['required', 'exists:categories,id'],
+            'unit_id' => ['nullable', 'exists:units,id'],
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer', 'min:0'],

@@ -58,6 +58,23 @@
                     @enderror
                 </div>
 
+                <!-- Base Unit -->
+                <div>
+                    <label for="unit_id" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Base Unit</label>
+                    <select name="unit_id" id="unit_id"
+                            class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition @error('unit_id') border-rose-400 @enderror">
+                        <option value="">Select Unit (Piece, Box, Kg...)</option>
+                        @foreach ($units as $u)
+                            <option value="{{ $u->id }}" {{ old('unit_id', $product->unit_id) == $u->id ? 'selected' : '' }}>
+                                {{ $u->name }} ({{ $u->short_code }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('unit_id')
+                        <p class="text-xs text-rose-500 mt-1 font-medium">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Purchase Price -->
                 <div>
                     <label for="purchase_price" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Purchase / Cost Price (Rs.) <span class="text-rose-500">*</span></label>

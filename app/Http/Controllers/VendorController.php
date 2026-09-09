@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Vendor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -31,7 +32,7 @@ class VendorController extends Controller
         return view('vendors.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -40,7 +41,15 @@ class VendorController extends Controller
             'address' => ['nullable', 'string'],
         ]);
 
-        Vendor::create($validated);
+        $vendor = Vendor::create($validated);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Vendor created successfully.',
+                'vendor' => $vendor,
+            ]);
+        }
 
         return redirect()->route('vendors.index')
             ->with('success', 'Vendor created successfully.');

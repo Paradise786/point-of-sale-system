@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -128,7 +129,20 @@ class PosController extends Controller
                 ]);
 
                 // Reduce stock
+                $beforeQty = $entry['product']->quantity;
                 $entry['product']->decrement('quantity', $entry['quantity']);
+                $afterQty = $beforeQty - $entry['quantity'];
+
+                // Record Stock Movement History
+                StockMovement::create([
+                    'product_id' => $entry['product']->id,
+                    'type' => 'sale',
+                    'quantity' => $entry['quantity'],
+                    'before_quantity' => $beforeQty,
+                    'after_quantity' => $afterQty,
+                    'reference' => $invoiceNumber,
+                    'notes' => 'Stock out via POS Sale',
+                ]);
 
                 $processedItems[] = [
                     'name' => $entry['product']->name,
@@ -136,7 +150,7 @@ class PosController extends Controller
                     'quantity' => $entry['quantity'],
                     'price' => $entry['price'],
                     'subtotal' => $entry['subtotal'],
-                    'remaining_stock' => $entry['product']->fresh()->quantity,
+                    'remaining_stock' => $afterQty,
                 ];
             }
 

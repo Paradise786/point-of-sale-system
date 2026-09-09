@@ -97,7 +97,7 @@
     </div>
 
     <!-- Secondary Summary Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div class="bg-white p-5 rounded-xl border border-slate-200/80 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-users"></i>
@@ -110,25 +110,36 @@
         </div>
 
         <div class="bg-white p-5 rounded-xl border border-slate-200/80 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-truck-moving"></i>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400 font-semibold uppercase">Vendors</p>
+                <p class="text-lg font-black text-slate-800">{{ number_format($totalVendors) }}</p>
+            </div>
+            <a href="{{ route('vendors.index') }}" class="ml-auto text-xs text-emerald-600 font-semibold hover:underline">Manage</a>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200/80 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-truck-ramp-box"></i>
             </div>
             <div>
-                <p class="text-xs text-slate-400 font-semibold uppercase">Total Purchases (In)</p>
-                <p class="text-lg font-black text-slate-800">Rs. {{ number_format($totalPurchases, 2) }}</p>
+                <p class="text-xs text-slate-400 font-semibold uppercase">Today's Purchases</p>
+                <p class="text-lg font-black text-slate-800">Rs. {{ number_format($todayPurchases, 2) }}</p>
             </div>
             <a href="{{ route('purchases.index') }}" class="ml-auto text-xs text-amber-600 font-semibold hover:underline">History</a>
         </div>
 
         <div class="bg-white p-5 rounded-xl border border-slate-200/80 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-layer-group"></i>
+                <i class="fa-solid fa-boxes-stacked"></i>
             </div>
             <div>
-                <p class="text-xs text-slate-400 font-semibold uppercase">Inventory Categories</p>
-                <p class="text-lg font-black text-slate-800">{{ number_format($totalCategories) }}</p>
+                <p class="text-xs text-slate-400 font-semibold uppercase">Stock Valuation</p>
+                <p class="text-lg font-black text-slate-800">Rs. {{ number_format($totalStockValue, 2) }}</p>
             </div>
-            <a href="{{ route('categories.index') }}" class="ml-auto text-xs text-teal-600 font-semibold hover:underline">Manage</a>
+            <a href="{{ route('stock.index') }}" class="ml-auto text-xs text-teal-600 font-semibold hover:underline">Stock</a>
         </div>
     </div>
 

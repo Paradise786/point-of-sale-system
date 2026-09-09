@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\StockMovement;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -59,5 +61,67 @@ class StockController extends Controller
             'totalStockCostValue',
             'totalStockRetailValue'
         ));
+    }
+
+    public function adjust(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'type' => ['required', 'in:adjustment_in,adjustment_out'],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $product = Product::lockForUpdate()->findOrFail($validated['product_id']);
+        $beforeQty = $product->quantity;
+        $qty = $validated['quantity'];
+
+        if ($validated['type'] === 'adjustment_out') {
+            if ($qty > $beforeQty) {
+                return back()->with('error', "Cannot adjust out {$qty} items. Only {$beforeQty} available in stock.");
+            }
+            $afterQty = $beforeQty - $qty;
+            $product->decrement('quantity', $qty);
+        } else {
+            $afterQty = $beforeQty + $qty;
+            $product->increment('quantity', $qty);
+        }
+
+        $reference = 'ADJ-'.date('Ymd').'-'.rand(100, 999);
+
+        StockMovement::create([
+            'product_id' => $product->id,
+            'type' => $validated['type'],
+            'quantity' => $qty,
+            'before_quantity' => $beforeQty,
+            'after_quantity' => $afterQty,
+            'reference' => $reference,
+            'notes' => $validated['notes'] ?? 'Manual Stock Adjustment',
+        ]);
+
+        return back()->with('success', "Stock adjusted successfully. New stock: {$afterQty}");
+    }
+
+    public function movements(Request $request): View
+    {
+        $search = $request->query('search');
+        $type = $request->query('type');
+
+        $movements = StockMovement::with('product')
+            ->when($search, function ($q, $search) {
+                return $q->where('reference', 'like', "%{$search}%")
+                    ->orWhereHas('product', function ($p) use ($search) {
+                        $p->where('name', 'like', "%{$search}%")
+                            ->orWhere('barcode', 'like', "%{$search}%");
+                    });
+            })
+            ->when($type, function ($q, $type) {
+                return $q->where('type', $type);
+            })
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('stock.movements', compact('movements', 'search', 'type'));
     }
 }

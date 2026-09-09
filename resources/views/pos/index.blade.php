@@ -187,26 +187,27 @@
                 </div>
 
                 <!-- Payment Method Toggle -->
+                <!-- Payment Method Toggle -->
                 <div>
                     <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Payment Method</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" onclick="setPaymentMethod('cash')" id="btnMethod_cash" 
-                                class="pay-method-btn active py-2 text-xs font-bold rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 flex items-center justify-center gap-1.5 transition">
+                                class="pay-method-btn active py-2 text-xs font-bold rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 flex items-center justify-center gap-1.5 transition cursor-pointer">
                             <i class="fa-solid fa-money-bill-wave"></i> Cash
                         </button>
                         <button type="button" onclick="setPaymentMethod('card')" id="btnMethod_card" 
-                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition">
+                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition cursor-pointer">
                             <i class="fa-solid fa-credit-card"></i> Card
                         </button>
                         <button type="button" onclick="setPaymentMethod('bank_transfer')" id="btnMethod_bank_transfer" 
-                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition">
+                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition cursor-pointer">
                             <i class="fa-solid fa-building-columns"></i> Transfer
                         </button>
                     </div>
                 </div>
 
-                <!-- Cash Received & Change Return Calculator -->
-                <div class="space-y-2">
+                <!-- Payment Details Container (Dynamic depending on payment method) -->
+                <div id="cashDetailsBox" class="space-y-2">
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Paid / Received (Rs.)</label>
@@ -228,6 +229,20 @@
                         <button type="button" onclick="addCashShortcut(1000)" class="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-600 font-bold transition">+1,000</button>
                         <button type="button" onclick="addCashShortcut(5000)" class="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-600 font-bold transition">+5,000</button>
                     </div>
+                </div>
+
+                <div id="cardDetailsBox" class="hidden p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-1.5 text-xs text-blue-900">
+                    <div class="flex items-center gap-2 font-bold text-blue-800">
+                        <i class="fa-solid fa-credit-card"></i> Card Payment Mode
+                    </div>
+                    <p class="text-[11px] text-blue-700 leading-snug">Swiped or POS Terminal payment. Total payable is automatically marked as paid in full.</p>
+                </div>
+
+                <div id="bankDetailsBox" class="hidden p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-1.5 text-xs text-purple-900">
+                    <div class="flex items-center gap-2 font-bold text-purple-800">
+                        <i class="fa-solid fa-building-columns"></i> Bank Transfer Mode
+                    </div>
+                    <p class="text-[11px] text-purple-700 leading-snug">Direct online bank transfer / IBFT / Raast payment. Total payable is automatically marked as paid in full.</p>
                 </div>
 
                 <!-- COMPLETE SALE BUTTON -->
@@ -419,23 +434,31 @@
 
         function filterProductsGrid(term) {
             const activeTab = document.querySelector('.cat-tab.active');
-            const activeCatId = activeTab ? activeTab.getAttribute('data-cat') : 'all';
+            const activeCatId = activeTab ? String(activeTab.getAttribute('data-cat')).trim() : 'all';
 
             document.querySelectorAll('.product-card').forEach(card => {
-                const name = card.getAttribute('data-name').toLowerCase();
-                const barcode = card.getAttribute('data-barcode').toLowerCase();
-                const catId = card.getAttribute('data-category');
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const barcode = (card.getAttribute('data-barcode') || '').toLowerCase();
+                const catId = String(card.getAttribute('data-category') || '').trim();
 
                 const matchesSearch = !term || name.includes(term) || barcode.includes(term);
                 const matchesCat = activeCatId === 'all' || catId === activeCatId;
 
-                card.style.display = (matchesSearch && matchesCat) ? 'flex' : 'none';
+                if (matchesSearch && matchesCat) {
+                    card.classList.remove('hidden');
+                    card.style.display = 'flex';
+                } else {
+                    card.classList.add('hidden');
+                    card.style.display = 'none';
+                }
             });
         }
 
         function filterCategory(catId) {
+            const targetCat = String(catId).trim();
             document.querySelectorAll('.cat-tab').forEach(btn => {
-                if (btn.getAttribute('data-cat') === String(catId)) {
+                const btnCat = String(btn.getAttribute('data-cat') || '').trim();
+                if (btnCat === targetCat) {
                     btn.classList.add('active', 'bg-slate-900', 'text-white');
                     btn.classList.remove('bg-white', 'text-slate-600');
                 } else {
@@ -581,7 +604,7 @@
         function setPaymentMethod(method) {
             selectedPaymentMethod = method;
             document.querySelectorAll('.pay-method-btn').forEach(btn => {
-                btn.classList.remove('active', 'border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
+                btn.classList.remove('active', 'border-2', 'border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
                 btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
             });
 
@@ -589,6 +612,21 @@
             if (activeBtn) {
                 activeBtn.classList.add('active', 'border-2', 'border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
                 activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
+            }
+
+            const cashBox = document.getElementById('cashDetailsBox');
+            const cardBox = document.getElementById('cardDetailsBox');
+            const bankBox = document.getElementById('bankDetailsBox');
+
+            if (cashBox) cashBox.classList.toggle('hidden', method !== 'cash');
+            if (cardBox) cardBox.classList.toggle('hidden', method !== 'card');
+            if (bankBox) bankBox.classList.toggle('hidden', method !== 'bank_transfer');
+
+            // For Card or Bank Transfer, auto-fill paid amount with exact total
+            if (method !== 'cash') {
+                const total = getCartTotal();
+                document.getElementById('paidAmountInput').value = total.toFixed(2);
+                calculateChange();
             }
         }
 

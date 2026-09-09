@@ -9,6 +9,14 @@
             <p class="text-xs text-slate-500 mt-0.5">Real-time stock balance calculated from total purchases and sales.</p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{{ route('stock.movements') }}" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Movement History</span>
+            </a>
+            <button type="button" onclick="openAdjustmentModal()" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Manual Adjustment</span>
+            </button>
             <a href="{{ route('purchases.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Restock / New Purchase</span>
@@ -193,4 +201,80 @@
         @endif
     </div>
 </div>
+
+<!-- Stock Adjustment Modal -->
+<div id="adjustmentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden p-6 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+                <h3 class="font-bold text-base text-slate-800">Manual Stock Adjustment</h3>
+                <p class="text-xs text-slate-500">Correct physical inventory discrepancy (+ or -)</p>
+            </div>
+            <button type="button" onclick="closeAdjustmentModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form action="{{ route('stock.adjust') }}" method="POST" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Select Product *</label>
+                <select name="product_id" id="adj_product_id" required class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                    <option value="">Choose a product...</option>
+                    @foreach ($products as $p)
+                        <option value="{{ $p->id }}">{{ $p->name }} (Current: {{ $p->quantity }})</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Adjustment Type *</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-xs font-semibold">
+                        <input type="radio" name="type" value="adjustment_in" checked class="text-emerald-600 focus:ring-emerald-500">
+                        <span>➕ Add Stock (+)</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-xs font-semibold">
+                        <input type="radio" name="type" value="adjustment_out" class="text-rose-600 focus:ring-rose-500">
+                        <span>➖ Deduct Stock (-)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Quantity *</label>
+                <input type="number" min="1" name="quantity" required placeholder="e.g. 2"
+                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Reason / Notes</label>
+                <input type="text" name="notes" placeholder="e.g. Broken item, physical stock audit count"
+                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeAdjustmentModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow">Apply Adjustment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAdjustmentModal(productId = null) {
+        const modal = document.getElementById('adjustmentModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        if (productId) {
+            document.getElementById('adj_product_id').value = productId;
+        }
+    }
+
+    function closeAdjustmentModal() {
+        const modal = document.getElementById('adjustmentModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+</script>
 @endsection

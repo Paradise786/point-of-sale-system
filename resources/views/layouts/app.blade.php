@@ -9,18 +9,21 @@
     <!-- Tailwind CSS & Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            900: '#064e3b',
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            brand: {
+                                50: '#ecfdf5',
+                                100: '#d1fae5',
+                                500: '#10b981',
+                                600: '#059669',
+                                700: '#047857',
+                                900: '#064e3b',
+                            }
                         }
                     }
                 }
@@ -32,6 +35,8 @@
         @media print {
             .no-print { display: none !important; }
         }
+        /* Fallback Core Layout Styles in case CDN script takes time */
+        body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased font-sans">
@@ -76,46 +81,72 @@
                     <span>Stock Overview</span>
                 </a>
 
-                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-6 mb-2">Inventory</p>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Inventory</p>
 
                 <a href="{{ route('products.index') }}" 
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('products.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('products.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="fa-solid fa-box-open w-5 text-center text-slate-400 {{ request()->routeIs('products.*') ? 'text-white' : '' }}"></i>
                     <span>Products</span>
                 </a>
 
                 <a href="{{ route('categories.index') }}" 
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('categories.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('categories.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="fa-solid fa-tags w-5 text-center text-slate-400 {{ request()->routeIs('categories.*') ? 'text-white' : '' }}"></i>
                     <span>Categories</span>
                 </a>
 
-                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-6 mb-2">Transactions</p>
+                <a href="{{ route('units.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('units.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-scale-balanced w-5 text-center text-slate-400 {{ request()->routeIs('units.*') ? 'text-white' : '' }}"></i>
+                    <span>Units & Conversion</span>
+                </a>
 
-                <a href="{{ route('purchases.index') }}" 
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('purchases.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                    <i class="fa-solid fa-bag-shopping w-5 text-center text-slate-400 {{ request()->routeIs('purchases.*') ? 'text-white' : '' }}"></i>
-                    <span>Purchases (Stock In)</span>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Orders & Invoices</p>
+
+                <a href="{{ route('sale-orders.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('sale-orders.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-cart-flatbed w-5 text-center text-slate-400 {{ request()->routeIs('sale-orders.*') ? 'text-white' : '' }}"></i>
+                    <span>Sale Orders</span>
                 </a>
 
                 <a href="{{ route('sales.index') }}" 
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('sales.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('sales.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="fa-solid fa-receipt w-5 text-center text-slate-400 {{ request()->routeIs('sales.*') ? 'text-white' : '' }}"></i>
-                    <span>Sales & Invoices</span>
+                    <span>Sale Invoices</span>
                 </a>
 
-                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-6 mb-2">People</p>
+                <a href="{{ route('purchase-orders.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('purchase-orders.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-clipboard-list w-5 text-center text-slate-400 {{ request()->routeIs('purchase-orders.*') ? 'text-white' : '' }}"></i>
+                    <span>Purchase Orders</span>
+                </a>
+
+                <a href="{{ route('purchases.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('purchases.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-bag-shopping w-5 text-center text-slate-400 {{ request()->routeIs('purchases.*') ? 'text-white' : '' }}"></i>
+                    <span>Purchase Invoices</span>
+                </a>
+
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">People & Contacts</p>
 
                 <a href="{{ route('customers.index') }}" 
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('customers.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('customers.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="fa-solid fa-users w-5 text-center text-slate-400 {{ request()->routeIs('customers.*') ? 'text-white' : '' }}"></i>
                     <span>Customers</span>
                 </a>
 
                 <a href="{{ route('vendors.index') }}" 
-                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('vendors.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('vendors.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="fa-solid fa-truck-moving w-5 text-center text-slate-400 {{ request()->routeIs('vendors.*') ? 'text-white' : '' }}"></i>
                     <span>Vendors</span>
+                </a>
+
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Analytics</p>
+
+                <a href="{{ route('reports.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('reports.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-chart-line w-5 text-center text-slate-400 {{ request()->routeIs('reports.*') ? 'text-white' : '' }}"></i>
+                    <span>Reports & Analytics</span>
                 </a>
             </nav>
 
