@@ -139,6 +139,22 @@
     let rowCount = 1;
     const productsData = @json($products);
 
+    function getUnitOptions() {
+        return productsData.map(p => {
+            const unitCode   = p.unit ? p.unit.short_code        : '';
+            const unitName   = p.unit ? p.unit.name              : '';
+            const operator   = p.unit ? p.unit.operator          : '*';
+            const factor     = p.unit ? p.unit.conversion_factor : 1;
+            return `<option value="${p.id}"
+                data-price="${p.selling_price}"
+                data-unit-code="${unitCode}"
+                data-unit-name="${unitName}"
+                data-unit-op="${operator}"
+                data-unit-factor="${factor}"
+            >${p.name} (Available: ${p.quantity}${unitCode ? ' ' + unitCode : ''})</option>`;
+        }).join('');
+    }
+
     function addItemRow() {
         const tbody = document.getElementById('itemsTableBody');
         const tr = document.createElement('tr');
@@ -147,11 +163,12 @@
             <td class="p-3">
                 <select name="items[${rowCount}][product_id]" required onchange="handleProductChange(this)" class="product-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
                     <option value="">Choose product...</option>
-                    ${productsData.map(p => `<option value="${p.id}" data-price="${p.selling_price}">${p.name} (Available: ${p.quantity})</option>`).join('')}
+                    ${getUnitOptions()}
                 </select>
             </td>
             <td class="p-3">
-                <input type="number" min="1" name="items[${rowCount}][quantity]" value="1" required oninput="calculateTotals()" class="item-qty w-full px-3 py-2 text-xs font-bold text-center bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                <input type="number" min="1" name="items[${rowCount}][quantity]" value="1" required oninput="calculateTotals(); updateUnitHintRow(this);" class="item-qty w-full px-3 py-2 text-xs font-bold text-center bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                <p class="text-[10px] text-emerald-600 font-semibold mt-0.5 pl-1 unit-hint-row"></p>
             </td>
             <td class="p-3">
                 <input type="number" step="0.01" min="0" name="items[${rowCount}][unit_price]" value="0.00" required oninput="calculateTotals()" class="item-price w-full px-3 py-2 text-xs font-bold text-right bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
@@ -186,6 +203,28 @@
         const row = select.closest('tr');
         row.querySelector('.item-price').value = parseFloat(price).toFixed(2);
         calculateTotals();
+        updateUnitHintRow(row.querySelector('.item-qty'));
+    }
+
+    function updateUnitHintRow(qtyInput) {
+        const row      = qtyInput.closest('tr');
+        const select   = row.querySelector('.product-select');
+        const hintEl   = row.querySelector('.unit-hint-row');
+        if (!select || !hintEl) { return; }
+
+        const opt      = select.options[select.selectedIndex];
+        const unitCode = opt ? opt.getAttribute('data-unit-code')   : '';
+        const operator = opt ? opt.getAttribute('data-unit-op')     : '*';
+        const factor   = parseFloat(opt ? opt.getAttribute('data-unit-factor') : 1) || 1;
+        const qty      = parseFloat(qtyInput.value) || 0;
+
+        if (!unitCode || factor === 1) { hintEl.textContent = ''; return; }
+
+        const baseQty = operator === '*' ? qty * factor : qty / factor;
+        const baseLabel = unitCode === 'box' || unitCode === 'ctn' || unitCode === 'dz' || unitCode === 'pack'
+            ? 'pcs' : unitCode === 'g' ? 'kg' : unitCode === 'ml' ? 'ltr' : 'base units';
+
+        hintEl.textContent = `≈ ${baseQty.toLocaleString()} ${baseLabel} will be deducted from stock`;
     }
 
     function calculateTotals() {
@@ -206,6 +245,7 @@
         document.getElementById('grandTotalDisplay').innerText = 'Rs. ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 </script>
+
 
 <!-- Quick Add Customer Modal -->
 <div id="quickCustomerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">

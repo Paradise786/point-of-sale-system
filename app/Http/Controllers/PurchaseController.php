@@ -36,7 +36,7 @@ class PurchaseController extends Controller
     public function create(): View
     {
         $vendors = Vendor::orderBy('name')->get();
-        $products = Product::orderBy('name')->get();
+        $products = Product::with('unit')->orderBy('name')->get();
 
         return view('purchases.create', compact('vendors', 'products'));
     }

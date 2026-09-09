@@ -146,7 +146,18 @@
 
         let options = '<option value="">Select a Product</option>';
         availableProducts.forEach(p => {
-            options += `<option value="${p.id}" data-price="${p.purchase_price}" data-stock="${p.quantity}">${p.name} (In stock: ${p.quantity})</option>`;
+            const unitName  = p.unit ? p.unit.name      : '';
+            const unitCode  = p.unit ? p.unit.short_code : '';
+            const operator  = p.unit ? p.unit.operator   : '*';
+            const factor    = p.unit ? p.unit.conversion_factor : 1;
+            options += `<option value="${p.id}"
+                data-price="${p.purchase_price}"
+                data-stock="${p.quantity}"
+                data-unit-name="${unitName}"
+                data-unit-code="${unitCode}"
+                data-unit-op="${operator}"
+                data-unit-factor="${factor}"
+            >${p.name} (In stock: ${p.quantity}${unitCode ? ' ' + unitCode : ''})</option>`;
         });
 
         tr.innerHTML = `
@@ -157,8 +168,9 @@
                 </select>
             </td>
             <td class="px-4 py-3">
-                <input type="number" min="1" value="1" name="items[${rowIndex}][quantity]" required oninput="calculateSubtotal(${rowIndex})"
+                <input type="number" min="1" value="1" name="items[${rowIndex}][quantity]" required oninput="calculateSubtotal(${rowIndex}); updateUnitHint(${rowIndex});"
                        class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                <p class="text-[10px] text-emerald-600 font-semibold mt-0.5 pl-1 unit-hint-${rowIndex}"></p>
             </td>
             <td class="px-4 py-3">
                 <div class="relative">
@@ -190,6 +202,43 @@
             priceInput.value = parseFloat(defaultPrice).toFixed(2);
         }
         calculateSubtotal(id);
+        updateUnitHint(id);
+    }
+
+    function updateUnitHint(id) {
+        const select    = document.querySelector(`select[name="items[${id}][product_id]"]`);
+        const qtyInput  = document.querySelector(`input[name="items[${id}][quantity]"]`);
+        const hintEl    = document.querySelector(`.unit-hint-${id}`);
+        if (!select || !qtyInput || !hintEl) { return; }
+
+        const opt       = select.options[select.selectedIndex];
+        const unitName  = opt ? opt.getAttribute('data-unit-name')   : '';
+        const unitCode  = opt ? opt.getAttribute('data-unit-code')   : '';
+        const operator  = opt ? opt.getAttribute('data-unit-op')     : '*';
+        const factor    = parseFloat(opt ? opt.getAttribute('data-unit-factor') : 1) || 1;
+        const qty       = parseFloat(qtyInput.value) || 0;
+
+        if (!unitName || factor === 1) {
+            hintEl.textContent = '';
+            return;
+        }
+
+        let baseQty;
+        if (operator === '*') {
+            baseQty = qty * factor;
+        } else {
+            baseQty = qty / factor;
+        }
+
+        const baseUnitLabel = unitCode === 'box'  ? 'pcs'
+                            : unitCode === 'ctn'  ? 'pcs'
+                            : unitCode === 'dz'   ? 'pcs'
+                            : unitCode === 'pack' ? 'pcs'
+                            : unitCode === 'g'    ? 'kg'
+                            : unitCode === 'ml'   ? 'ltr'
+                            : 'base units';
+
+        hintEl.textContent = `≈ ${baseQty.toLocaleString()} ${baseUnitLabel} will be added to stock`;
     }
 
     function calculateSubtotal(id) {

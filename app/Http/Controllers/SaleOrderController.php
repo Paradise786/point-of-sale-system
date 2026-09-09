@@ -42,7 +42,7 @@ class SaleOrderController extends Controller
     public function create(): View
     {
         $customers = Customer::orderBy('name')->get();
-        $products = Product::where('quantity', '>', 0)->orderBy('name')->get();
+        $products = Product::with('unit')->where('quantity', '>', 0)->orderBy('name')->get();
 
         return view('sale_orders.create', compact('customers', 'products'));
     }
