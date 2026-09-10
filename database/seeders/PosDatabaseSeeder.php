@@ -2,17 +2,17 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use App\Models\Category;
-use App\Models\Product;
 use App\Models\Customer;
-use App\Models\Vendor;
+use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Vendor;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PosDatabaseSeeder extends Seeder
@@ -181,4 +181,3 @@ class PosDatabaseSeeder extends Seeder
         DB::statement('PRAGMA foreign_keys = ON');
     }
 }
-?>

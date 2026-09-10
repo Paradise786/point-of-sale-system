@@ -13,6 +13,8 @@ class SaleOrderItem extends Model
     protected $fillable = [
         'sale_order_id',
         'product_id',
+        'unit_id',
+        'conversion_rate',
         'quantity',
         'unit_price',
         'subtotal',
@@ -22,6 +24,7 @@ class SaleOrderItem extends Model
         'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'quantity' => 'integer',
+        'conversion_rate' => 'decimal:4',
     ];
 
     public function saleOrder(): BelongsTo
@@ -32,5 +35,10 @@ class SaleOrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
     }
 }

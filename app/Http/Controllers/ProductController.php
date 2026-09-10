@@ -58,14 +58,39 @@ class ProductController extends Controller
             'sku' => ['nullable', 'string', 'max:100'],
             'category_id' => ['required', 'exists:categories,id'],
             'unit_id' => ['nullable', 'exists:units,id'],
+            'default_sale_unit_id' => ['nullable', 'exists:units,id'],
+            'default_purchase_unit_id' => ['nullable', 'exists:units,id'],
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer', 'min:0'],
             'alert_quantity' => ['required', 'integer', 'min:0'],
             'description' => ['nullable', 'string'],
+            'secondary_units' => ['nullable', 'array'],
+            'secondary_units.*.unit_id' => ['required', 'exists:units,id'],
+            'secondary_units.*.conversion_rate' => ['required', 'numeric', 'min:0.0001'],
+            'secondary_units.*.sale_price' => ['nullable', 'numeric', 'min:0'],
+            'secondary_units.*.purchase_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        Product::create($validated);
+        $product = Product::create($validated);
+
+        if (! empty($validated['secondary_units'])) {
+            $seenUnits = [];
+            foreach ($validated['secondary_units'] as $su) {
+                // Don't duplicate base unit or same secondary unit
+                if ($su['unit_id'] == $product->unit_id || in_array($su['unit_id'], $seenUnits)) {
+                    continue;
+                }
+                $seenUnits[] = $su['unit_id'];
+
+                $product->secondaryUnits()->create([
+                    'unit_id' => $su['unit_id'],
+                    'conversion_rate' => $su['conversion_rate'],
+                    'sale_price' => ! empty($su['sale_price']) ? $su['sale_price'] : null,
+                    'purchase_price' => ! empty($su['purchase_price']) ? $su['purchase_price'] : null,
+                ]);
+            }
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'Product created successfully.');
@@ -73,6 +98,7 @@ class ProductController extends Controller
 
     public function edit(Product $product): View
     {
+        $product->load(['secondaryUnits.unit']);
         $categories = Category::orderBy('name')->get();
         $units = Unit::orderBy('name')->get();
 
@@ -87,14 +113,41 @@ class ProductController extends Controller
             'sku' => ['nullable', 'string', 'max:100'],
             'category_id' => ['required', 'exists:categories,id'],
             'unit_id' => ['nullable', 'exists:units,id'],
+            'default_sale_unit_id' => ['nullable', 'exists:units,id'],
+            'default_purchase_unit_id' => ['nullable', 'exists:units,id'],
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer', 'min:0'],
             'alert_quantity' => ['required', 'integer', 'min:0'],
             'description' => ['nullable', 'string'],
+            'secondary_units' => ['nullable', 'array'],
+            'secondary_units.*.unit_id' => ['required', 'exists:units,id'],
+            'secondary_units.*.conversion_rate' => ['required', 'numeric', 'min:0.0001'],
+            'secondary_units.*.sale_price' => ['nullable', 'numeric', 'min:0'],
+            'secondary_units.*.purchase_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $product->update($validated);
+
+        // Sync secondary units
+        $product->secondaryUnits()->delete();
+
+        if (! empty($validated['secondary_units'])) {
+            $seenUnits = [];
+            foreach ($validated['secondary_units'] as $su) {
+                if ($su['unit_id'] == $product->unit_id || in_array($su['unit_id'], $seenUnits)) {
+                    continue;
+                }
+                $seenUnits[] = $su['unit_id'];
+
+                $product->secondaryUnits()->create([
+                    'unit_id' => $su['unit_id'],
+                    'conversion_rate' => $su['conversion_rate'],
+                    'sale_price' => ! empty($su['sale_price']) ? $su['sale_price'] : null,
+                    'purchase_price' => ! empty($su['purchase_price']) ? $su['purchase_price'] : null,
+                ]);
+            }
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'Product updated successfully.');

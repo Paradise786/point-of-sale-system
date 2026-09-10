@@ -21,6 +21,11 @@ class SaleOrderController extends Controller
     {
         $search = $request->query('search');
         $status = $request->query('status');
+        $customerId = $request->query('customer_id');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
+        $customers = Customer::orderBy('name')->get();
 
         $orders = SaleOrder::with(['customer', 'items.product'])
             ->when($search, function ($q, $search) {
@@ -29,20 +34,29 @@ class SaleOrderController extends Controller
                         $sub->where('name', 'like', "%{$search}%");
                     });
             })
+            ->when($customerId, function ($q, $customerId) {
+                return $q->where('customer_id', $customerId);
+            })
             ->when($status, function ($q, $status) {
                 return $q->where('status', $status);
+            })
+            ->when($dateFrom, function ($q, $dateFrom) {
+                return $q->whereDate('created_at', '>=', $dateFrom);
+            })
+            ->when($dateTo, function ($q, $dateTo) {
+                return $q->whereDate('created_at', '<=', $dateTo);
             })
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
-        return view('sale_orders.index', compact('orders', 'search', 'status'));
+        return view('sale_orders.index', compact('orders', 'customers', 'search', 'status', 'customerId', 'dateFrom', 'dateTo'));
     }
 
     public function create(): View
     {
         $customers = Customer::orderBy('name')->get();
-        $products = Product::with('unit')->where('quantity', '>', 0)->orderBy('name')->get();
+        $products = Product::with(['unit', 'secondaryUnits.unit'])->where('quantity', '>', 0)->orderBy('name')->get();
 
         return view('sale_orders.create', compact('customers', 'products'));
     }
@@ -54,6 +68,8 @@ class SaleOrderController extends Controller
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
+            'items.*.unit_id' => ['nullable', 'exists:units,id'],
+            'items.*.conversion_rate' => ['nullable', 'numeric', 'min:0.0001'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
         ]);
@@ -75,9 +91,13 @@ class SaleOrderController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
+                $conversionRate = isset($item['conversion_rate']) ? (float) $item['conversion_rate'] : 1.0;
+
                 SaleOrderItem::create([
                     'sale_order_id' => $order->id,
                     'product_id' => $item['product_id'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'conversion_rate' => $conversionRate,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $item['quantity'] * $item['unit_price'],
@@ -91,23 +111,25 @@ class SaleOrderController extends Controller
 
     public function show(SaleOrder $saleOrder): View
     {
-        $saleOrder->load(['customer', 'items.product']);
+        $saleOrder->load(['customer', 'items.product.unit', 'items.unit']);
 
         return view('sale_orders.show', compact('saleOrder'));
     }
 
     public function convertToInvoice(Request $request, SaleOrder $saleOrder): RedirectResponse
     {
-        if ($saleOrder->status === 'confirmed') {
+        if ($saleOrder->isConverted()) {
             return back()->with('error', 'This sale order has already been converted to an invoice.');
         }
 
         $paymentMethod = $request->input('payment_method', 'cash');
 
-        // Check stock availability
+        // Check stock availability in base units
         foreach ($saleOrder->items as $item) {
-            if ($item->product->quantity < $item->quantity) {
-                return back()->with('error', "Insufficient stock for '{$item->product->name}'. Available: {$item->product->quantity}, Requested: {$item->quantity}");
+            $rate = (float) ($item->conversion_rate ?? 1.0);
+            $baseRequired = $item->quantity * $rate;
+            if ($item->product->quantity < $baseRequired) {
+                return back()->with('error', "Insufficient stock for '{$item->product->name}'. Available: {$item->product->quantity} base units, Requested: {$baseRequired} base units.");
             }
         }
 
@@ -115,6 +137,7 @@ class SaleOrderController extends Controller
             $invoiceNumber = 'SI-'.date('Ymd').'-'.strtoupper(Str::random(4));
 
             $sale = Sale::create([
+                'sale_order_id' => $saleOrder->id,
                 'invoice_number' => $invoiceNumber,
                 'customer_id' => $saleOrder->customer_id,
                 'total_amount' => $saleOrder->total_amount,
@@ -125,32 +148,40 @@ class SaleOrderController extends Controller
             ]);
 
             foreach ($saleOrder->items as $item) {
+                $conversionRate = (float) ($item->conversion_rate ?? 1.0);
+                $baseQuantity = $item->quantity * $conversionRate;
+
                 SaleItem::create([
                     'sale_id' => $sale->id,
                     'product_id' => $item->product_id,
+                    'unit_id' => $item->unit_id,
+                    'conversion_rate' => $conversionRate,
                     'quantity' => $item->quantity,
+                    'base_quantity' => $baseQuantity,
                     'price' => $item->unit_price,
                     'subtotal' => $item->subtotal,
                 ]);
 
-                // Reduce stock now upon invoice creation
+                // Reduce stock now upon invoice creation in BASE UNITS
                 $beforeQty = $item->product->quantity;
-                $item->product->decrement('quantity', $item->quantity);
-                $afterQty = $beforeQty - $item->quantity;
+                $item->product->decrement('quantity', $baseQuantity);
+                $afterQty = $beforeQty - $baseQuantity;
+
+                $unitLabel = $item->unit ? $item->unit->short_code : ($item->product->unit ? $item->product->unit->short_code : 'units');
 
                 StockMovement::create([
                     'product_id' => $item->product_id,
                     'type' => 'sale',
-                    'quantity' => $item->quantity,
+                    'quantity' => $baseQuantity,
                     'before_quantity' => $beforeQty,
                     'after_quantity' => $afterQty,
                     'reference' => $invoiceNumber,
-                    'notes' => "Stock out from converted SO: {$saleOrder->so_number}",
+                    'notes' => "Stock out: {$item->quantity} {$unitLabel} ({$baseQuantity} base units) from converted SO: {$saleOrder->so_number}",
                 ]);
             }
 
             $saleOrder->update([
-                'status' => 'confirmed',
+                'status' => 'converted',
                 'converted_sale_id' => $sale->id,
             ]);
         });

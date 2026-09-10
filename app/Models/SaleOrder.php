@@ -38,4 +38,19 @@ class SaleOrder extends Model
     {
         return $this->belongsTo(Sale::class, 'converted_sale_id');
     }
+
+    public function isConverted(): bool
+    {
+        return in_array($this->status, ['converted', 'confirmed']) || ! is_null($this->converted_sale_id);
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
 }

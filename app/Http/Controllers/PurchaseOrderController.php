@@ -21,6 +21,11 @@ class PurchaseOrderController extends Controller
     {
         $search = $request->query('search');
         $status = $request->query('status');
+        $vendorId = $request->query('vendor_id');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
+        $vendors = Vendor::orderBy('name')->get();
 
         $orders = PurchaseOrder::with(['vendor', 'items.product'])
             ->when($search, function ($q, $search) {
@@ -29,20 +34,29 @@ class PurchaseOrderController extends Controller
                         $sub->where('name', 'like', "%{$search}%");
                     });
             })
+            ->when($vendorId, function ($q, $vendorId) {
+                return $q->where('vendor_id', $vendorId);
+            })
             ->when($status, function ($q, $status) {
                 return $q->where('status', $status);
+            })
+            ->when($dateFrom, function ($q, $dateFrom) {
+                return $q->whereDate('created_at', '>=', $dateFrom);
+            })
+            ->when($dateTo, function ($q, $dateTo) {
+                return $q->whereDate('created_at', '<=', $dateTo);
             })
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
-        return view('purchase_orders.index', compact('orders', 'search', 'status'));
+        return view('purchase_orders.index', compact('orders', 'vendors', 'search', 'status', 'vendorId', 'dateFrom', 'dateTo'));
     }
 
     public function create(): View
     {
         $vendors = Vendor::orderBy('name')->get();
-        $products = Product::with('unit')->orderBy('name')->get();
+        $products = Product::with(['unit', 'secondaryUnits.unit'])->orderBy('name')->get();
 
         return view('purchase_orders.create', compact('vendors', 'products'));
     }
@@ -54,6 +68,8 @@ class PurchaseOrderController extends Controller
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
+            'items.*.unit_id' => ['nullable', 'exists:units,id'],
+            'items.*.conversion_rate' => ['nullable', 'numeric', 'min:0.0001'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
         ]);
@@ -75,9 +91,13 @@ class PurchaseOrderController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
+                $conversionRate = isset($item['conversion_rate']) ? (float) $item['conversion_rate'] : 1.0;
+
                 PurchaseOrderItem::create([
                     'purchase_order_id' => $order->id,
                     'product_id' => $item['product_id'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'conversion_rate' => $conversionRate,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $item['quantity'] * $item['unit_price'],
@@ -91,14 +111,14 @@ class PurchaseOrderController extends Controller
 
     public function show(PurchaseOrder $purchaseOrder): View
     {
-        $purchaseOrder->load(['vendor', 'items.product']);
+        $purchaseOrder->load(['vendor', 'items.product.unit', 'items.unit']);
 
         return view('purchase_orders.show', compact('purchaseOrder'));
     }
 
     public function convertToInvoice(PurchaseOrder $purchaseOrder): RedirectResponse
     {
-        if ($purchaseOrder->status === 'received') {
+        if ($purchaseOrder->isConverted()) {
             return back()->with('error', 'This purchase order has already been converted to an invoice.');
         }
 
@@ -106,6 +126,7 @@ class PurchaseOrderController extends Controller
             $refNo = 'PI-'.date('Ymd').'-'.strtoupper(Str::random(4));
 
             $purchase = Purchase::create([
+                'purchase_order_id' => $purchaseOrder->id,
                 'reference_no' => $refNo,
                 'vendor_id' => $purchaseOrder->vendor_id,
                 'purchase_date' => now()->toDateString(),
@@ -115,37 +136,43 @@ class PurchaseOrderController extends Controller
             ]);
 
             foreach ($purchaseOrder->items as $item) {
+                $conversionRate = (float) ($item->conversion_rate ?? 1.0);
+                $baseQuantity = $item->quantity * $conversionRate;
+
                 PurchaseItem::create([
                     'purchase_id' => $purchase->id,
                     'product_id' => $item->product_id,
+                    'unit_id' => $item->unit_id,
+                    'conversion_rate' => $conversionRate,
                     'quantity' => $item->quantity,
+                    'base_quantity' => $baseQuantity,
                     'purchase_price' => $item->unit_price,
                     'subtotal' => $item->subtotal,
                 ]);
 
-                // Increase physical stock
+                // Increase physical stock in BASE UNITS
                 $product = Product::lockForUpdate()->find($item->product_id);
                 if ($product) {
                     $beforeQty = $product->quantity;
-                    $product->increment('quantity', $item->quantity);
-                    $afterQty = $beforeQty + $item->quantity;
+                    $product->increment('quantity', $baseQuantity);
+                    $afterQty = $beforeQty + $baseQuantity;
+
+                    $unitLabel = $item->unit ? $item->unit->short_code : ($product->unit ? $product->unit->short_code : 'units');
 
                     StockMovement::create([
                         'product_id' => $product->id,
                         'type' => 'purchase',
-                        'quantity' => $item->quantity,
+                        'quantity' => $baseQuantity,
                         'before_quantity' => $beforeQty,
                         'after_quantity' => $afterQty,
                         'reference' => $refNo,
-                        'notes' => "Stock in from converted PO: {$purchaseOrder->po_number}",
+                        'notes' => "Stock in: {$item->quantity} {$unitLabel} ({$baseQuantity} base units) from PO: {$purchaseOrder->po_number}",
                     ]);
-
-                    $product->update(['purchase_price' => $item->unit_price]);
                 }
             }
 
             $purchaseOrder->update([
-                'status' => 'received',
+                'status' => 'converted',
                 'converted_purchase_id' => $purchase->id,
             ]);
         });

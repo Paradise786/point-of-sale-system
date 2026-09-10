@@ -38,4 +38,19 @@ class PurchaseOrder extends Model
     {
         return $this->belongsTo(Purchase::class, 'converted_purchase_id');
     }
+
+    public function isConverted(): bool
+    {
+        return in_array($this->status, ['converted', 'received']) || ! is_null($this->converted_purchase_id);
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
 }

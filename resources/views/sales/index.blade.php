@@ -38,40 +38,63 @@
         </div>
     </div>
 
-    <!-- Filters Bar -->
-    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
-        <form action="{{ route('sales.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="relative lg:col-span-1">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Invoice # or customer..." 
-                       class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+    <!-- Filters Bar (ERP Style) -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-filter text-emerald-600"></i> Apply Filter
+            </h3>
+            @if (!empty($search) || !empty($paymentMethod) || !empty($customerId) || !empty($dateFrom) || !empty($dateTo))
+                <a href="{{ route('sales.index') }}" class="text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1 transition">
+                    <i class="fa-solid fa-rotate-left text-[11px]"></i> Reset Filters
+                </a>
+            @endif
+        </div>
+
+        <form action="{{ route('sales.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <!-- Search Keyword -->
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Invoice / Ref #</label>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Search Invoice..." 
+                           class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                </div>
             </div>
 
+            <!-- Customer Filter -->
             <div>
-                <select name="payment_method" class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                    <option value="">All Payment Methods</option>
-                    <option value="cash" {{ $paymentMethod === 'cash' ? 'selected' : '' }}>Cash</option>
-                    <option value="card" {{ $paymentMethod === 'card' ? 'selected' : '' }}>Card</option>
-                    <option value="bank_transfer" {{ $paymentMethod === 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Customer</label>
+                <select name="customer_id" class="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                    <option value="">All Customers</option>
+                    @foreach ($customers as $c)
+                        <option value="{{ $c->id }}" {{ (isset($customerId) && $customerId == $c->id) ? 'selected' : '' }}>
+                            {{ $c->name }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-                <input type="date" name="date_from" value="{{ $dateFrom ?? '' }}" placeholder="From date"
-                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                <input type="date" name="date_to" value="{{ $dateTo ?? '' }}" placeholder="To date"
-                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            <!-- From Date -->
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">From Date</label>
+                <input type="date" name="date_from" value="{{ $dateFrom ?? '' }}"
+                       class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
             </div>
 
-            <div class="flex items-center gap-2">
-                <button type="submit" class="flex-1 px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-700 transition">
-                    Filter
+            <!-- To Date -->
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">To Date</label>
+                <input type="date" name="date_to" value="{{ $dateTo ?? '' }}"
+                       class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+
+            <!-- Submit Filter Button -->
+            <div>
+                <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-filter text-xs"></i>
+                    <span>Filter Invoices</span>
                 </button>
-                @if (!empty($search) || !empty($paymentMethod) || !empty($dateFrom) || !empty($dateTo))
-                    <a href="{{ route('sales.index') }}" class="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
-                        Clear
-                    </a>
-                @endif
             </div>
         </form>
     </div>

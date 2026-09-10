@@ -137,15 +137,37 @@
         <!-- RIGHT: Live Cart & Checkout (40%) -->
         <div class="w-full lg:w-[450px] xl:w-[480px] bg-white flex flex-col h-full shadow-2xl flex-shrink-0 border-l border-slate-200">
             
+            <!-- Sale Order (Booking) Selector Card -->
+            <div class="p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border-b border-emerald-200 flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                    <label for="saleOrderSelect" class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-invoice-dollar text-emerald-600"></i> Select Sale Order / Booking
+                    </label>
+                    <span id="linkedSoBadge" class="{{ $selectedSo ? '' : 'hidden' }} px-2 py-0.5 text-[9px] font-black bg-emerald-600 text-white rounded-md uppercase tracking-wider shadow-xs">
+                        SO Loaded
+                    </span>
+                </div>
+                <select id="saleOrderSelect" onchange="onSaleOrderSelect(this.value)" class="w-full px-3 py-1.5 text-xs font-semibold bg-white border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-2xs">
+                    <option value="">-- No Order Selected (Standard POS Sale) --</option>
+                    @foreach ($pendingSaleOrders as $so)
+                        <option value="{{ $so->id }}" {{ ($selectedSo && $selectedSo->id == $so->id) ? 'selected' : '' }}>
+                            {{ $so->so_number }} - {{ $so->customer->name ?? 'Walk-in' }} (Rs. {{ number_format($so->total_amount, 2) }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <!-- Customer Selection Header -->
-            <div class="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
                 <div class="flex-1">
                     <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Customer</label>
                     <div class="flex items-center gap-1.5">
                         <select id="customerSelect" class="flex-1 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                             <option value="">Walk-in Customer (Guest)</option>
                             @foreach ($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->phone ?? 'No phone' }})</option>
+                                <option value="{{ $c->id }}" {{ ($selectedSo && $selectedSo->customer_id == $c->id) ? 'selected' : '' }}>
+                                    {{ $c->name }} ({{ $c->phone ?? 'No phone' }})
+                                </option>
                             @endforeach
                         </select>
                         <button type="button" onclick="openQuickCustomerModal()" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 text-xs font-bold transition" title="Quick Add Customer">
@@ -186,22 +208,29 @@
                     </div>
                 </div>
 
-                <!-- Payment Method Toggle -->
-                <!-- Payment Method Toggle -->
+                <!-- Payment Method Toggle (4 Methods) -->
                 <div>
                     <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Payment Method</label>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-4 gap-1.5">
                         <button type="button" onclick="setPaymentMethod('cash')" id="btnMethod_cash" 
-                                class="pay-method-btn active py-2 text-xs font-bold rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 flex items-center justify-center gap-1.5 transition cursor-pointer">
-                            <i class="fa-solid fa-money-bill-wave"></i> Cash
+                                class="pay-method-btn active py-2 text-xs font-bold rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 flex flex-col items-center justify-center gap-1 transition cursor-pointer">
+                            <i class="fa-solid fa-money-bill-wave text-sm"></i>
+                            <span>Cash</span>
                         </button>
                         <button type="button" onclick="setPaymentMethod('card')" id="btnMethod_card" 
-                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition cursor-pointer">
-                            <i class="fa-solid fa-credit-card"></i> Card
+                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 transition cursor-pointer">
+                            <i class="fa-solid fa-credit-card text-sm"></i>
+                            <span>Card</span>
                         </button>
                         <button type="button" onclick="setPaymentMethod('bank_transfer')" id="btnMethod_bank_transfer" 
-                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition cursor-pointer">
-                            <i class="fa-solid fa-building-columns"></i> Transfer
+                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 transition cursor-pointer">
+                            <i class="fa-solid fa-building-columns text-sm"></i>
+                            <span>Bank</span>
+                        </button>
+                        <button type="button" onclick="setPaymentMethod('online')" id="btnMethod_online" 
+                                class="pay-method-btn py-2 text-xs font-bold rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 transition cursor-pointer">
+                            <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+                            <span>Online</span>
                         </button>
                     </div>
                 </div>
@@ -231,23 +260,30 @@
                     </div>
                 </div>
 
-                <div id="cardDetailsBox" class="hidden p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-1.5 text-xs text-blue-900">
+                <div id="cardDetailsBox" class="hidden p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-1 text-xs text-blue-900">
                     <div class="flex items-center gap-2 font-bold text-blue-800">
                         <i class="fa-solid fa-credit-card"></i> Card Payment Mode
                     </div>
-                    <p class="text-[11px] text-blue-700 leading-snug">Swiped or POS Terminal payment. Total payable is automatically marked as paid in full.</p>
+                    <p class="text-[11px] text-blue-700 leading-snug">Swiped or POS Terminal card payment. Total payable is automatically marked as paid in full.</p>
                 </div>
 
-                <div id="bankDetailsBox" class="hidden p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-1.5 text-xs text-purple-900">
+                <div id="bankDetailsBox" class="hidden p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-1 text-xs text-purple-900">
                     <div class="flex items-center gap-2 font-bold text-purple-800">
                         <i class="fa-solid fa-building-columns"></i> Bank Transfer Mode
                     </div>
                     <p class="text-[11px] text-purple-700 leading-snug">Direct online bank transfer / IBFT / Raast payment. Total payable is automatically marked as paid in full.</p>
                 </div>
 
+                <div id="onlineDetailsBox" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1 text-xs text-emerald-900">
+                    <div class="flex items-center gap-2 font-bold text-emerald-800">
+                        <i class="fa-solid fa-mobile-screen-button"></i> Online / Mobile Wallet
+                    </div>
+                    <p class="text-[11px] text-emerald-700 leading-snug">JazzCash / EasyPaisa / SadaPay / NayaPay mobile payment. Total payable is automatically marked as paid in full.</p>
+                </div>
+
                 <!-- COMPLETE SALE BUTTON -->
                 <button type="button" onclick="submitCheckout()" id="checkoutBtn" disabled
-                        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition duration-150 flex items-center justify-center gap-2 group">
+                        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition duration-150 flex items-center justify-center gap-2 group cursor-pointer">
                     <i class="fa-solid fa-circle-check text-base group-hover:scale-110 transition-transform"></i>
                     <span>COMPLETE SALE</span>
                 </button>
@@ -386,9 +422,68 @@
     <!-- POS Javascript Engine -->
     <script>
         const productsCatalog = @json($products);
+        const pendingSaleOrdersData = @json($pendingSaleOrders);
+        const selectedSoData = @json($selectedSo);
+        let currentSaleOrderId = selectedSoData ? selectedSoData.id : null;
         let cart = [];
         let selectedPaymentMethod = 'cash';
         let latestSaleData = null;
+
+        // Sale Order Loader
+        function onSaleOrderSelect(soId) {
+            if (!soId) {
+                currentSaleOrderId = null;
+                document.getElementById('linkedSoBadge').classList.add('hidden');
+                return;
+            }
+            const order = pendingSaleOrdersData.find(o => o.id == soId);
+            if (!order) return;
+
+            loadSaleOrderIntoCart(order);
+        }
+
+        function loadSaleOrderIntoCart(order) {
+            currentSaleOrderId = order.id;
+            const badge = document.getElementById('linkedSoBadge');
+            if (badge) badge.classList.remove('hidden');
+
+            const soSelect = document.getElementById('saleOrderSelect');
+            if (soSelect) soSelect.value = order.id;
+
+            // Set customer
+            if (order.customer_id) {
+                const custSelect = document.getElementById('customerSelect');
+                if (custSelect) custSelect.value = order.customer_id;
+            }
+
+            // Populate items into cart
+            cart = [];
+            if (order.items && order.items.length > 0) {
+                order.items.forEach(item => {
+                    const product = productsCatalog.find(p => p.id === item.product_id);
+                    if (!product) return;
+
+                    const units = getProductAvailableUnits(product);
+                    const chosenUnit = (item.unit_id ? units.find(u => u.unit_id == item.unit_id) : null) || units.find(u => u.is_base) || units[0];
+
+                    cart.push({
+                        id: product.id,
+                        name: product.name,
+                        barcode: product.barcode,
+                        unit_id: chosenUnit ? chosenUnit.unit_id : null,
+                        unit_name: chosenUnit ? chosenUnit.name : 'Piece',
+                        unit_code: chosenUnit ? chosenUnit.short_code : 'pc',
+                        conversion_rate: item.conversion_rate ? parseFloat(item.conversion_rate) : (chosenUnit ? chosenUnit.conversion_rate : 1.0),
+                        price: item.unit_price ? parseFloat(item.unit_price) : (chosenUnit ? chosenUnit.sale_price : parseFloat(product.selling_price)),
+                        stock: product.quantity,
+                        quantity: parseInt(item.quantity) || 1,
+                        available_units: units,
+                    });
+                });
+            }
+
+            renderCart();
+        }
 
         // Clock display
         function updateClock() {
@@ -469,7 +564,51 @@
             filterProductsGrid(searchInput.value.toLowerCase().trim());
         }
 
-        // Cart Management
+        // Cart Management & Secondary Units
+        function getProductAvailableUnits(product) {
+            if (!product) return [];
+            const list = [];
+
+            if (product.unit) {
+                list.push({
+                    unit_id: product.unit.id,
+                    name: product.unit.name,
+                    short_code: product.unit.short_code,
+                    conversion_rate: 1.0,
+                    sale_price: parseFloat(product.selling_price) || 0,
+                    is_base: true,
+                });
+            } else {
+                list.push({
+                    unit_id: '',
+                    name: 'Base Unit',
+                    short_code: 'pc',
+                    conversion_rate: 1.0,
+                    sale_price: parseFloat(product.selling_price) || 0,
+                    is_base: true,
+                });
+            }
+
+            if (product.secondary_units && product.secondary_units.length > 0) {
+                product.secondary_units.forEach(su => {
+                    if (su.unit) {
+                        const conv = parseFloat(su.conversion_rate) || 1.0;
+                        const price = su.sale_price !== null ? parseFloat(su.sale_price) : (parseFloat(product.selling_price) * conv);
+                        list.push({
+                            unit_id: su.unit.id,
+                            name: su.unit.name,
+                            short_code: su.unit.short_code,
+                            conversion_rate: conv,
+                            sale_price: price,
+                            is_base: false,
+                        });
+                    }
+                });
+            }
+
+            return list;
+        }
+
         function addToCart(productId) {
             const product = productsCatalog.find(p => p.id === productId);
             if (!product) return;
@@ -479,10 +618,17 @@
                 return;
             }
 
-            const existing = cart.find(item => item.id === productId);
-            if (existing) {
-                if (existing.quantity >= product.quantity) {
-                    alert(`Cannot add more. Only ${product.quantity} units available in stock.`);
+            const units = getProductAvailableUnits(product);
+            const selectedUnit = (product.default_sale_unit_id ? units.find(u => u.unit_id == product.default_sale_unit_id) : null)
+                || units.find(u => u.is_base)
+                || (units.length > 0 ? units[0] : null);
+
+            const existingIndex = cart.findIndex(item => item.id === productId && item.unit_id === (selectedUnit ? selectedUnit.unit_id : null));
+            if (existingIndex !== -1) {
+                const existing = cart[existingIndex];
+                const newBaseQty = (existing.quantity + 1) * existing.conversion_rate;
+                if (newBaseQty > product.quantity) {
+                    alert(`Cannot add more. Only ${product.quantity} base units available in stock.`);
                     return;
                 }
                 existing.quantity++;
@@ -491,28 +637,56 @@
                     id: product.id,
                     name: product.name,
                     barcode: product.barcode,
-                    price: parseFloat(product.selling_price),
+                    unit_id: selectedUnit ? selectedUnit.unit_id : null,
+                    unit_name: selectedUnit ? selectedUnit.name : 'Piece',
+                    unit_code: selectedUnit ? selectedUnit.short_code : 'pc',
+                    conversion_rate: selectedUnit ? selectedUnit.conversion_rate : 1.0,
+                    price: selectedUnit ? selectedUnit.sale_price : parseFloat(product.selling_price),
                     stock: product.quantity,
                     quantity: 1,
+                    available_units: units,
                 });
             }
 
             renderCart();
         }
 
-        function updateCartQty(productId, newQty) {
-            const item = cart.find(i => i.id === productId);
+        function changeCartUnit(itemIndex, unitId) {
+            const item = cart[itemIndex];
+            if (!item) return;
+
+            const selectedUnit = item.available_units.find(u => u.unit_id == unitId);
+            if (!selectedUnit) return;
+
+            item.unit_id = selectedUnit.unit_id;
+            item.unit_name = selectedUnit.name;
+            item.unit_code = selectedUnit.short_code;
+            item.conversion_rate = selectedUnit.conversion_rate;
+            item.price = selectedUnit.sale_price;
+
+            // Verify stock for new conversion rate
+            const baseRequired = item.quantity * item.conversion_rate;
+            if (baseRequired > item.stock) {
+                alert(`Stock warning: ${item.quantity} ${item.unit_name} requires ${baseRequired} base units, but only ${item.stock} are in stock.`);
+            }
+
+            renderCart();
+        }
+
+        function updateCartQty(itemIndex, newQty) {
+            const item = cart[itemIndex];
             if (!item) return;
 
             newQty = parseInt(newQty);
             if (isNaN(newQty) || newQty <= 0) {
-                removeFromCart(productId);
+                removeFromCart(itemIndex);
                 return;
             }
 
-            if (newQty > item.stock) {
-                alert(`Only ${item.stock} units available in stock.`);
-                item.quantity = item.stock;
+            const maxAllowed = Math.floor(item.stock / item.conversion_rate);
+            if (newQty > maxAllowed) {
+                alert(`Only ${item.stock} base units in stock (maximum ${maxAllowed} ${item.unit_name}).`);
+                item.quantity = maxAllowed > 0 ? maxAllowed : 1;
             } else {
                 item.quantity = newQty;
             }
@@ -520,8 +694,8 @@
             renderCart();
         }
 
-        function removeFromCart(productId) {
-            cart = cart.filter(i => i.id !== productId);
+        function removeFromCart(itemIndex) {
+            cart.splice(itemIndex, 1);
             renderCart();
         }
 
@@ -553,26 +727,47 @@
             let total = 0;
             let totalQty = 0;
 
-            cart.forEach(item => {
+            cart.forEach((item, index) => {
                 const subtotal = item.quantity * item.price;
                 total += subtotal;
                 totalQty += item.quantity;
 
+                let unitOptionsHtml = '';
+                if (item.available_units && item.available_units.length > 0) {
+                    item.available_units.forEach(u => {
+                        const isSelected = item.unit_id == u.unit_id ? 'selected' : '';
+                        unitOptionsHtml += `<option value="${u.unit_id}" ${isSelected}>${u.short_code} (Rs. ${u.sale_price.toFixed(0)})</option>`;
+                    });
+                } else {
+                    unitOptionsHtml = `<option value="">${item.unit_code}</option>`;
+                }
+
+                const baseStockDeducted = item.quantity * item.conversion_rate;
+                const convHint = item.conversion_rate > 1
+                    ? `<span class="text-[10px] text-emerald-600 font-semibold block">≈ ${baseStockDeducted} pcs from stock</span>`
+                    : '';
+
                 html += `
-                    <div class="p-2.5 bg-white border border-slate-200 rounded-xl shadow-xs flex items-center justify-between gap-3">
+                    <div class="p-2.5 bg-white border border-slate-200 rounded-xl shadow-xs flex items-center justify-between gap-2.5">
                         <div class="flex-1 min-w-0">
                             <h5 class="font-bold text-xs text-slate-800 truncate">${item.name}</h5>
-                            <span class="text-[10px] text-slate-400 font-mono">Rs. ${item.price.toFixed(2)} each</span>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <select onchange="changeCartUnit(${index}, this.value)" class="text-[10px] font-bold bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 focus:outline-none">
+                                    ${unitOptionsHtml}
+                                </select>
+                                <span class="text-[10px] text-slate-400 font-mono">Rs. ${item.price.toFixed(2)}</span>
+                            </div>
+                            ${convHint}
                         </div>
 
                         <!-- Quantity Stepper -->
                         <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                            <button type="button" onclick="updateCartQty(${item.id}, ${item.quantity - 1})" class="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-600 hover:text-rose-600 text-xs font-bold shadow-xs">
+                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity - 1})" class="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-600 hover:text-rose-600 text-xs font-bold shadow-xs">
                                 -
                             </button>
-                            <input type="number" min="1" max="${item.stock}" value="${item.quantity}" onchange="updateCartQty(${item.id}, this.value)"
-                                   class="w-8 text-center text-xs font-bold bg-transparent border-0 focus:outline-none p-0">
-                            <button type="button" onclick="updateCartQty(${item.id}, ${item.quantity + 1})" class="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-600 hover:text-emerald-600 text-xs font-bold shadow-xs">
+                            <input type="number" min="1" value="${item.quantity}" onchange="updateCartQty(${index}, this.value)"
+                                   class="w-7 text-center text-xs font-bold bg-transparent border-0 focus:outline-none p-0">
+                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity + 1})" class="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-600 hover:text-emerald-600 text-xs font-bold shadow-xs">
                                 +
                             </button>
                         </div>
@@ -580,7 +775,7 @@
                         <!-- Subtotal -->
                         <div class="text-right min-w-[70px]">
                             <span class="font-black text-xs text-slate-900 block">Rs. ${subtotal.toFixed(2)}</span>
-                            <button type="button" onclick="removeFromCart(${item.id})" class="text-[10px] text-slate-400 hover:text-rose-600 transition">
+                            <button type="button" onclick="removeFromCart(${index})" class="text-[10px] text-slate-400 hover:text-rose-600 transition">
                                 Remove
                             </button>
                         </div>
@@ -589,7 +784,7 @@
             });
 
             container.innerHTML = html;
-            document.getElementById('cartItemsCount').innerText = `${totalQty} units (${cart.length} unique)`;
+            document.getElementById('cartItemsCount').innerText = `${totalQty} units (${cart.length} items)`;
             document.getElementById('cartTotalDisplay').innerText = 'Rs. ' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             checkoutBtn.disabled = false;
 
@@ -600,67 +795,61 @@
             calculateChange();
         }
 
-        // Payment Calculation
-        function setPaymentMethod(method) {
-            selectedPaymentMethod = method;
-            document.querySelectorAll('.pay-method-btn').forEach(btn => {
-                btn.classList.remove('active', 'border-2', 'border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
-                btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
-            });
-
-            const activeBtn = document.getElementById(`btnMethod_${method}`);
-            if (activeBtn) {
-                activeBtn.classList.add('active', 'border-2', 'border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
-                activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
-            }
-
-            const cashBox = document.getElementById('cashDetailsBox');
-            const cardBox = document.getElementById('cardDetailsBox');
-            const bankBox = document.getElementById('bankDetailsBox');
-
-            if (cashBox) cashBox.classList.toggle('hidden', method !== 'cash');
-            if (cardBox) cardBox.classList.toggle('hidden', method !== 'card');
-            if (bankBox) bankBox.classList.toggle('hidden', method !== 'bank_transfer');
-
-            // For Card or Bank Transfer, auto-fill paid amount with exact total
-            if (method !== 'cash') {
-                const total = getCartTotal();
-                document.getElementById('paidAmountInput').value = total.toFixed(2);
-                calculateChange();
-            }
-        }
-
         function getCartTotal() {
-            return cart.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            return cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
         }
 
         function calculateChange() {
             const total = getCartTotal();
             const paid = parseFloat(document.getElementById('paidAmountInput').value) || 0;
-            const change = paid - total;
-            const changeDisplay = document.getElementById('changeAmountDisplay');
-
-            if (change >= 0) {
-                changeDisplay.innerText = 'Rs. ' + change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                changeDisplay.className = 'px-3 py-2 text-sm font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg';
-            } else {
-                changeDisplay.innerText = '- Rs. ' + Math.abs(change).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                changeDisplay.className = 'px-3 py-2 text-sm font-black text-rose-600 bg-rose-50 border border-rose-200 rounded-lg';
-            }
+            const change = Math.max(0, paid - total);
+            document.getElementById('changeAmountDisplay').innerText = 'Rs. ' + change.toFixed(2);
         }
 
         function setQuickCash(type) {
             const total = getCartTotal();
             if (type === 'exact') {
                 document.getElementById('paidAmountInput').value = total.toFixed(2);
-                calculateChange();
             }
+            calculateChange();
         }
 
         function addCashShortcut(amount) {
             const current = parseFloat(document.getElementById('paidAmountInput').value) || 0;
             document.getElementById('paidAmountInput').value = (current + amount).toFixed(2);
             calculateChange();
+        }
+
+        function setPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            document.querySelectorAll('.pay-method-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-2', 'border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
+                btn.classList.add('border', 'border-slate-200', 'bg-white', 'text-slate-600');
+            });
+
+            const activeBtn = document.getElementById(`btnMethod_${method}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border', 'border-slate-200', 'bg-white', 'text-slate-600');
+                activeBtn.classList.add('active', 'border-2', 'border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
+            }
+
+            const cashBox = document.getElementById('cashDetailsBox');
+            const cardBox = document.getElementById('cardDetailsBox');
+            const bankBox = document.getElementById('bankDetailsBox');
+            const onlineBox = document.getElementById('onlineDetailsBox');
+
+            if (cashBox) cashBox.classList.toggle('hidden', method !== 'cash');
+            if (cardBox) cardBox.classList.toggle('hidden', method !== 'card');
+            if (bankBox) bankBox.classList.toggle('hidden', method !== 'bank_transfer');
+            if (onlineBox) onlineBox.classList.toggle('hidden', method !== 'online');
+
+            const total = getCartTotal();
+            if (method !== 'cash') {
+                document.getElementById('paidAmountInput').value = total.toFixed(2);
+                document.getElementById('changeAmountDisplay').innerText = 'Rs. 0.00';
+            } else {
+                calculateChange();
+            }
         }
 
         // Checkout Action
@@ -681,10 +870,18 @@
 
             const payload = {
                 customer_id: document.getElementById('customerSelect').value || null,
+                sale_order_id: currentSaleOrderId,
                 payment_method: selectedPaymentMethod,
                 paid_amount: paid,
-                items: cart.map(i => ({ id: i.id, quantity: i.quantity })),
+                items: cart.map(i => ({
+                    id: i.id,
+                    unit_id: i.unit_id,
+                    conversion_rate: i.conversion_rate,
+                    quantity: i.quantity,
+                    price: i.price
+                })),
             };
+
 
             try {
                 const res = await fetch("{{ route('pos.checkout') }}", {
@@ -841,6 +1038,13 @@
                 alert('Could not save customer.');
             }
         }
+
+        // Auto-load pre-selected Sale Order if provided via query param / controller
+        document.addEventListener('DOMContentLoaded', function() {
+            if (selectedSoData) {
+                loadSaleOrderIntoCart(selectedSoData);
+            }
+        });
 
         // Global hotkeys (Esc to close modals)
         window.addEventListener('keydown', function(e) {

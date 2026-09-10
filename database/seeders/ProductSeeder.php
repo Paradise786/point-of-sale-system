@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductUnit;
 use App\Models\Unit;
 use Illuminate\Database\Seeder;
 
@@ -146,8 +147,31 @@ class ProductSeeder extends Seeder
             ],
         ];
 
-        foreach ($products as $product) {
-            Product::firstOrCreate(['barcode' => $product['barcode']], $product);
+        foreach ($products as $productData) {
+            $created = Product::firstOrCreate(['barcode' => $productData['barcode']], $productData);
+
+            // Add sample secondary units for demo testing
+            if ($created->barcode === 'BC-ELEC-001' && $box) {
+                ProductUnit::firstOrCreate([
+                    'product_id' => $created->id,
+                    'unit_id' => $box,
+                ], [
+                    'conversion_rate' => 10,
+                    'purchase_price' => 7500, // discount on bulk buy
+                    'sale_price' => 11000,    // discount on bulk sell
+                ]);
+            }
+
+            if ($created->barcode === 'BC-FOOD-002' && $dozen) {
+                ProductUnit::firstOrCreate([
+                    'product_id' => $created->id,
+                    'unit_id' => $dozen,
+                ], [
+                    'conversion_rate' => 12,
+                    'purchase_price' => 280,
+                    'sale_price' => 450,
+                ]);
+            }
         }
     }
 }

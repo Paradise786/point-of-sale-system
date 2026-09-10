@@ -69,41 +69,16 @@
                 <table class="w-full text-left text-sm" id="itemsTable">
                     <thead class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                         <tr>
-                            <th class="px-4 py-3" style="width: 45%;">Product</th>
-                            <th class="px-4 py-3 text-center" style="width: 15%;">Quantity</th>
-                            <th class="px-4 py-3 text-right" style="width: 20%;">Selling Price (Rs.)</th>
-                            <th class="px-4 py-3 text-right" style="width: 15%;">Subtotal (Rs.)</th>
-                            <th class="px-4 py-3 text-center" style="width: 5%;"></th>
+                            <th class="px-3 py-3" style="width: 35%;">Product</th>
+                            <th class="px-3 py-3" style="width: 20%;">Unit / Packaging</th>
+                            <th class="px-3 py-3 text-center" style="width: 15%;">Quantity</th>
+                            <th class="px-3 py-3 text-right" style="width: 15%;">Selling Price (Rs.)</th>
+                            <th class="px-3 py-3 text-right" style="width: 10%;">Subtotal</th>
+                            <th class="px-2 py-3 text-center" style="width: 5%;"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100" id="itemsTableBody">
-                        <!-- Default first row -->
-                        <tr class="item-row">
-                            <td class="p-3">
-                                <select name="items[0][product_id]" required onchange="handleProductChange(this)" class="product-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
-                                    <option value="">Choose product...</option>
-                                    @foreach ($products as $product)
-                                        <option value="{{ $product->id }}" data-price="{{ $product->selling_price }}">
-                                            {{ $product->name }} (Available: {{ $product->quantity }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td class="p-3">
-                                <input type="number" min="1" name="items[0][quantity]" value="1" required oninput="calculateTotals()" class="item-qty w-full px-3 py-2 text-xs font-bold text-center bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
-                            </td>
-                            <td class="p-3">
-                                <input type="number" step="0.01" min="0" name="items[0][unit_price]" value="0.00" required oninput="calculateTotals()" class="item-price w-full px-3 py-2 text-xs font-bold text-right bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
-                            </td>
-                            <td class="p-3 text-right font-black text-slate-800 item-subtotal text-xs">
-                                Rs. 0.00
-                            </td>
-                            <td class="p-3 text-center">
-                                <button type="button" onclick="removeItemRow(this)" class="text-slate-300 hover:text-rose-500 transition p-1">
-                                    <i class="fa-solid fa-trash-can text-xs"></i>
-                                </button>
-                            </td>
-                        </tr>
+                        <!-- Dynamic item rows injected via JS -->
                     </tbody>
                 </table>
             </div>
@@ -113,7 +88,7 @@
                 <div class="w-72 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                     <div class="flex items-center justify-between text-xs text-slate-600">
                         <span>Total Items:</span>
-                        <span class="font-bold text-slate-800" id="totalItemsCount">1</span>
+                        <span class="font-bold text-slate-800" id="totalItemsCount">0</span>
                     </div>
                     <div class="flex items-center justify-between text-sm font-bold border-t border-slate-200 pt-2">
                         <span class="text-slate-800">Grand Total:</span>
@@ -136,44 +111,90 @@
 </div>
 
 <script>
-    let rowCount = 1;
+    let rowCount = 0;
     const productsData = @json($products);
 
-    function getUnitOptions() {
-        return productsData.map(p => {
-            const unitCode   = p.unit ? p.unit.short_code        : '';
-            const unitName   = p.unit ? p.unit.name              : '';
-            const operator   = p.unit ? p.unit.operator          : '*';
-            const factor     = p.unit ? p.unit.conversion_factor : 1;
-            return `<option value="${p.id}"
-                data-price="${p.selling_price}"
-                data-unit-code="${unitCode}"
-                data-unit-name="${unitName}"
-                data-unit-op="${operator}"
-                data-unit-factor="${factor}"
-            >${p.name} (Available: ${p.quantity}${unitCode ? ' ' + unitCode : ''})</option>`;
-        }).join('');
+    function getProductUnits(productId) {
+        const product = productsData.find(p => p.id == productId);
+        if (!product) return [];
+
+        const list = [];
+        if (product.unit) {
+            list.push({
+                unit_id: product.unit.id,
+                name: product.unit.name,
+                short_code: product.unit.short_code,
+                conversion_rate: 1.0,
+                sale_price: parseFloat(product.selling_price) || 0,
+                is_base: true,
+            });
+        } else {
+            list.push({
+                unit_id: '',
+                name: 'Base Unit',
+                short_code: 'pc',
+                conversion_rate: 1.0,
+                sale_price: parseFloat(product.selling_price) || 0,
+                is_base: true,
+            });
+        }
+
+        if (product.secondary_units && product.secondary_units.length > 0) {
+            product.secondary_units.forEach(su => {
+                if (su.unit) {
+                    const conv = parseFloat(su.conversion_rate) || 1.0;
+                    const price = su.sale_price !== null ? parseFloat(su.sale_price) : (parseFloat(product.selling_price) * conv);
+                    list.push({
+                        unit_id: su.unit.id,
+                        name: su.unit.name,
+                        short_code: su.unit.short_code,
+                        conversion_rate: conv,
+                        sale_price: price,
+                        is_base: false,
+                    });
+                }
+            });
+        }
+
+        return list;
     }
 
     function addItemRow() {
         const tbody = document.getElementById('itemsTableBody');
         const tr = document.createElement('tr');
-        tr.className = 'item-row';
+        tr.id = `so_row_${rowCount}`;
+        tr.className = 'item-row hover:bg-slate-50/50 transition';
+
+        let productOptions = '<option value="">Choose product...</option>';
+        productsData.forEach(p => {
+            const baseUnit = p.unit ? p.unit.short_code : '';
+            productOptions += `<option value="${p.id}">${p.name} (Available: ${p.quantity} ${baseUnit})</option>`;
+        });
+
         tr.innerHTML = `
             <td class="p-3">
-                <select name="items[${rowCount}][product_id]" required onchange="handleProductChange(this)" class="product-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
-                    <option value="">Choose product...</option>
-                    ${getUnitOptions()}
+                <select name="items[${rowCount}][product_id]" required onchange="handleProductChange(this, ${rowCount})"
+                        class="product-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                    ${productOptions}
                 </select>
             </td>
             <td class="p-3">
-                <input type="number" min="1" name="items[${rowCount}][quantity]" value="1" required oninput="calculateTotals(); updateUnitHintRow(this);" class="item-qty w-full px-3 py-2 text-xs font-bold text-center bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
-                <p class="text-[10px] text-emerald-600 font-semibold mt-0.5 pl-1 unit-hint-row"></p>
+                <select name="items[${rowCount}][unit_id]" onchange="handleUnitChange(this, ${rowCount})"
+                        class="unit-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                    <option value="">Base Unit</option>
+                </select>
+                <input type="hidden" name="items[${rowCount}][conversion_rate]" class="conversion-rate-input" value="1">
             </td>
             <td class="p-3">
-                <input type="number" step="0.01" min="0" name="items[${rowCount}][unit_price]" value="0.00" required oninput="calculateTotals()" class="item-price w-full px-3 py-2 text-xs font-bold text-right bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                <input type="number" min="1" name="items[${rowCount}][quantity]" value="1" required oninput="calculateTotals()"
+                       class="item-qty w-full px-3 py-2 text-xs font-bold text-center bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                <p class="text-[10px] text-emerald-600 font-semibold mt-0.5 text-center unit-hint-${rowCount}"></p>
             </td>
-            <td class="p-3 text-right font-black text-slate-800 item-subtotal text-xs">
+            <td class="p-3">
+                <input type="number" step="0.01" min="0" name="items[${rowCount}][unit_price]" value="0.00" required oninput="calculateTotals()"
+                       class="item-price w-full px-3 py-2 text-xs font-bold text-right bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+            </td>
+            <td class="p-3 text-right font-black text-slate-800 item-subtotal text-xs" id="subtotal_${rowCount}">
                 Rs. 0.00
             </td>
             <td class="p-3 text-center">
@@ -183,6 +204,8 @@
             </td>
         `;
         tbody.appendChild(tr);
+
+        const currIndex = rowCount;
         rowCount++;
         calculateTotals();
     }
@@ -197,54 +220,85 @@
         calculateTotals();
     }
 
-    function handleProductChange(select) {
-        const selected = select.options[select.selectedIndex];
-        const price = selected.getAttribute('data-price') || 0;
-        const row = select.closest('tr');
-        row.querySelector('.item-price').value = parseFloat(price).toFixed(2);
-        calculateTotals();
-        updateUnitHintRow(row.querySelector('.item-qty'));
+    function handleProductChange(select, id) {
+        const productId = select.value;
+        const row = document.getElementById(`so_row_${id}`);
+        if (!row) return;
+
+        const unitSelect = row.querySelector('.unit-select');
+        if (!productId) {
+            unitSelect.innerHTML = '<option value="">Base Unit</option>';
+            row.querySelector('.item-price').value = '0.00';
+            calculateTotals();
+            return;
+        }
+
+        const product = productsData.find(p => p.id == productId);
+        const units = getProductUnits(productId);
+        const targetUnitId = product ? product.default_sale_unit_id : null;
+
+        let html = '';
+        units.forEach(u => {
+            const isSelected = targetUnitId ? (targetUnitId == u.unit_id) : u.is_base;
+            const label = u.is_base ? `${u.name} (${u.short_code}) [Base]` : `${u.name} (= ${u.conversion_rate} Base)`;
+            html += `<option value="${u.unit_id}" data-rate="${u.conversion_rate}" data-price="${u.sale_price}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+        });
+
+        unitSelect.innerHTML = html;
+        handleUnitChange(unitSelect, id);
     }
 
-    function updateUnitHintRow(qtyInput) {
-        const row      = qtyInput.closest('tr');
-        const select   = row.querySelector('.product-select');
-        const hintEl   = row.querySelector('.unit-hint-row');
-        if (!select || !hintEl) { return; }
+    function handleUnitChange(unitSelect, id) {
+        const row = document.getElementById(`so_row_${id}`);
+        if (!row) return;
 
-        const opt      = select.options[select.selectedIndex];
-        const unitCode = opt ? opt.getAttribute('data-unit-code')   : '';
-        const operator = opt ? opt.getAttribute('data-unit-op')     : '*';
-        const factor   = parseFloat(opt ? opt.getAttribute('data-unit-factor') : 1) || 1;
-        const qty      = parseFloat(qtyInput.value) || 0;
+        const product = productsData.find(p => p.id == row.querySelector('.product-select')?.value);
+        const selectedOption = unitSelect.options[unitSelect.selectedIndex];
+        const rate = parseFloat(selectedOption?.getAttribute('data-rate') || 1.0);
+        let unitPrice = parseFloat(selectedOption?.getAttribute('data-price'));
+        if (isNaN(unitPrice) || unitPrice <= 0) {
+            unitPrice = (parseFloat(product?.selling_price) || 0) * rate;
+        }
 
-        if (!unitCode || factor === 1) { hintEl.textContent = ''; return; }
+        row.querySelector('.conversion-rate-input').value = rate;
+        row.querySelector('.item-price').value = unitPrice.toFixed(2);
 
-        const baseQty = operator === '*' ? qty * factor : qty / factor;
-        const baseLabel = unitCode === 'box' || unitCode === 'ctn' || unitCode === 'dz' || unitCode === 'pack'
-            ? 'pcs' : unitCode === 'g' ? 'kg' : unitCode === 'ml' ? 'ltr' : 'base units';
-
-        hintEl.textContent = `≈ ${baseQty.toLocaleString()} ${baseLabel} will be deducted from stock`;
+        calculateTotals();
     }
 
     function calculateTotals() {
         let grandTotal = 0;
         let totalItems = 0;
 
-        document.querySelectorAll('.item-row').forEach(row => {
+        document.querySelectorAll('.item-row').forEach((row, idx) => {
             const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
             const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const rate = parseFloat(row.querySelector('.conversion-rate-input')?.value || 1.0);
             const subtotal = qty * price;
 
             row.querySelector('.item-subtotal').innerText = 'Rs. ' + subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             grandTotal += subtotal;
             totalItems += qty;
+
+            const hintEl = row.querySelector('p[class*="unit-hint-"]');
+            if (hintEl) {
+                if (rate > 1) {
+                    hintEl.innerText = `≈ ${(qty * rate).toLocaleString()} base units`;
+                } else {
+                    hintEl.innerText = '';
+                }
+            }
         });
 
         document.getElementById('totalItemsCount').innerText = totalItems;
         document.getElementById('grandTotalDisplay').innerText = 'Rs. ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        addItemRow();
+    });
 </script>
+
 
 
 <!-- Quick Add Customer Modal -->

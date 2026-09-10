@@ -4,26 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Purchase extends Model
+class PurchaseReturn extends Model
 {
     protected $fillable = [
-        'purchase_order_id',
-        'reference_no',
+        'return_number',
+        'purchase_id',
         'vendor_id',
-        'purchase_date',
+        'return_date',
         'total_amount',
-        'status',
+        'refund_amount',
         'note',
     ];
 
     protected $casts = [
-        'purchase_date' => 'date',
+        'return_date' => 'date',
         'total_amount' => 'decimal:2',
+        'refund_amount' => 'decimal:2',
     ];
 
-    public function purchaseOrder()
+    public function purchase()
     {
-        return $this->belongsTo(PurchaseOrder::class);
+        return $this->belongsTo(Purchase::class);
     }
 
     public function vendor()
@@ -33,6 +34,6 @@ class Purchase extends Model
 
     public function items()
     {
-        return $this->hasMany(PurchaseItem::class);
+        return $this->hasMany(PurchaseReturnItem::class);
     }
 }

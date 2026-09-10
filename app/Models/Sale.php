@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Sale extends Model
 {
     protected $fillable = [
+        'sale_order_id',
         'invoice_number',
         'customer_id',
         'total_amount',
@@ -21,6 +22,11 @@ class Sale extends Model
         'paid_amount' => 'decimal:2',
         'change_amount' => 'decimal:2',
     ];
+
+    public function saleOrder()
+    {
+        return $this->belongsTo(SaleOrder::class);
+    }
 
     public function customer()
     {

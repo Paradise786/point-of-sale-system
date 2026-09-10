@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('so_number')->unique();
             $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
             $table->decimal('total_amount', 12, 2)->default(0);
-            $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'confirmed', 'converted', 'cancelled'])->default('pending');
             $table->foreignId('converted_sale_id')->nullable()->constrained('sales')->nullOnDelete();
             $table->text('notes')->nullable();
             $table->timestamps();

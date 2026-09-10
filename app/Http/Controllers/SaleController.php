@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -12,8 +13,11 @@ class SaleController extends Controller
     {
         $search = $request->query('search');
         $paymentMethod = $request->query('payment_method');
+        $customerId = $request->query('customer_id');
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
+
+        $customers = Customer::orderBy('name')->get();
 
         $sales = Sale::with(['customer', 'items.product'])
             ->when($search, function ($query, $search) {
@@ -21,6 +25,9 @@ class SaleController extends Controller
                     ->orWhereHas('customer', function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%");
                     });
+            })
+            ->when($customerId, function ($query, $customerId) {
+                return $query->where('customer_id', $customerId);
             })
             ->when($paymentMethod, function ($query, $paymentMethod) {
                 return $query->where('payment_method', $paymentMethod);
@@ -38,7 +45,7 @@ class SaleController extends Controller
         $totalRevenue = Sale::sum('total_amount');
         $totalOrders = Sale::count();
 
-        return view('sales.index', compact('sales', 'search', 'paymentMethod', 'dateFrom', 'dateTo', 'totalRevenue', 'totalOrders'));
+        return view('sales.index', compact('sales', 'customers', 'search', 'customerId', 'paymentMethod', 'dateFrom', 'dateTo', 'totalRevenue', 'totalOrders'));
     }
 
     public function show(Sale $sale): View

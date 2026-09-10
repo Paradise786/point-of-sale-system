@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('po_number')->unique();
             $table->foreignId('vendor_id')->constrained()->cascadeOnDelete();
             $table->decimal('total_amount', 12, 2)->default(0);
-            $table->enum('status', ['pending', 'received', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'received', 'converted', 'cancelled'])->default('pending');
             $table->foreignId('converted_purchase_id')->nullable()->constrained('purchases')->nullOnDelete();
             $table->text('notes')->nullable();
             $table->timestamps();

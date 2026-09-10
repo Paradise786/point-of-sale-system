@@ -101,7 +101,7 @@
                     <span>Units & Conversion</span>
                 </a>
 
-                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Orders & Invoices</p>
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Sales</p>
 
                 <a href="{{ route('sale-orders.index') }}" 
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('sale-orders.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -115,6 +115,14 @@
                     <span>Sale Invoices</span>
                 </a>
 
+                <a href="{{ route('sale-returns.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('sale-returns.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-arrow-rotate-left w-5 text-center text-slate-400 {{ request()->routeIs('sale-returns.*') ? 'text-white' : '' }}"></i>
+                    <span>Sale Returns</span>
+                </a>
+
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Purchases</p>
+
                 <a href="{{ route('purchase-orders.index') }}" 
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('purchase-orders.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="fa-solid fa-clipboard-list w-5 text-center text-slate-400 {{ request()->routeIs('purchase-orders.*') ? 'text-white' : '' }}"></i>
@@ -125,6 +133,26 @@
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('purchases.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="fa-solid fa-bag-shopping w-5 text-center text-slate-400 {{ request()->routeIs('purchases.*') ? 'text-white' : '' }}"></i>
                     <span>Purchase Invoices</span>
+                </a>
+
+                <a href="{{ route('purchase-returns.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('purchase-returns.*') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-truck-ramp-box w-5 text-center text-slate-400 {{ request()->routeIs('purchase-returns.*') ? 'text-white' : '' }}"></i>
+                    <span>Purchase Returns</span>
+                </a>
+
+                <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">Chart Of Accounts</p>
+
+                <a href="{{ route('ledgers.customer') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('ledgers.customer') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-book-bookmark w-5 text-center text-slate-400 {{ request()->routeIs('ledgers.customer') ? 'text-white' : '' }}"></i>
+                    <span>Customer Ledgers</span>
+                </a>
+
+                <a href="{{ route('ledgers.vendor') }}" 
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ request()->routeIs('ledgers.vendor') ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="fa-solid fa-book-journal-whills w-5 text-center text-slate-400 {{ request()->routeIs('ledgers.vendor') ? 'text-white' : '' }}"></i>
+                    <span>Vendor Ledgers</span>
                 </a>
 
                 <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-5 mb-2">People & Contacts</p>

@@ -4,30 +4,28 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class SaleItem extends Model
+class PurchaseReturnItem extends Model
 {
     protected $fillable = [
-        'sale_id',
+        'purchase_return_id',
         'product_id',
         'unit_id',
         'conversion_rate',
         'quantity',
-        'base_quantity',
-        'price',
+        'unit_price',
         'subtotal',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
         'conversion_rate' => 'decimal:4',
-        'base_quantity' => 'decimal:4',
-        'price' => 'decimal:2',
+        'quantity' => 'integer',
+        'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 
-    public function sale()
+    public function purchaseReturn()
     {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(PurchaseReturn::class);
     }
 
     public function product()

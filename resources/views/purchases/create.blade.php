@@ -4,8 +4,8 @@
 <div class="max-w-5xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-2xl font-black text-slate-800">New Purchase Order</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Procure products from vendors. Stock quantities will be automatically increased.</p>
+            <h2 class="text-2xl font-black text-slate-800">New Purchase Invoice</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Record received vendor goods and create Purchase Invoice. Stock will be increased in base units upon saving.</p>
         </div>
         <a href="{{ route('purchases.index') }}" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition flex items-center gap-1.5">
             <i class="fa-solid fa-arrow-left"></i> Back to Purchases
@@ -14,32 +14,57 @@
 
     <form action="{{ route('purchases.store') }}" method="POST" id="purchaseForm" class="space-y-6">
         @csrf
+        <input type="hidden" name="purchase_order_id" id="purchase_order_id" value="{{ $selectedPo ? $selectedPo->id : old('purchase_order_id') }}">
+
+        <!-- PO Converter Card (Optional) -->
+        <div class="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 rounded-2xl border border-emerald-200/80 p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-base shadow-sm">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Convert from Purchase Order (PO)</h3>
+                        <p class="text-xs text-slate-500">Auto-fill vendor, ordered items, packaging units &amp; agreed prices.</p>
+                    </div>
+                </div>
+                <div class="sm:w-72">
+                    <select id="po_selector" onchange="onPoSelect(this.value)" class="w-full px-3 py-2 text-xs font-semibold bg-white border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs">
+                        <option value="">-- Choose Pending PO (Optional) --</option>
+                        @foreach ($pendingOrders as $po)
+                            <option value="{{ $po->id }}" {{ ($selectedPo && $selectedPo->id == $po->id) || old('purchase_order_id') == $po->id ? 'selected' : '' }}>
+                                {{ $po->po_number }} - {{ $po->vendor->name ?? 'Vendor' }} (Rs. {{ number_format($po->total_amount, 2) }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
 
         <!-- Vendor & General Details Card -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
             <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-truck text-emerald-600"></i> Vendor & Order Details
+                <i class="fa-solid fa-truck text-emerald-600"></i> Vendor &amp; Order Details
             </h3>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Vendor Select -->
+                <div>
                     <div class="flex items-center justify-between mb-2">
                         <label for="vendor_id" class="text-xs font-bold uppercase tracking-wider text-slate-600">Vendor / Supplier <span class="text-rose-500">*</span></label>
                         <button type="button" onclick="openQuickVendorModal()" class="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
                             <i class="fa-solid fa-plus-circle"></i> + Add New Vendor
                         </button>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <select name="vendor_id" id="vendor_id" required 
-                                class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition @error('vendor_id') border-rose-400 @enderror">
-                            <option value="">Select Vendor</option>
-                            @foreach ($vendors as $vendor)
-                                <option value="{{ $vendor->id }}" {{ old('vendor_id') == $vendor->id ? 'selected' : '' }}>
-                                    {{ $vendor->name }} ({{ $vendor->phone ?? 'No phone' }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <select name="vendor_id" id="vendor_id" required 
+                            class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition @error('vendor_id') border-rose-400 @enderror">
+                        <option value="">Select Vendor</option>
+                        @foreach ($vendors as $vendor)
+                            <option value="{{ $vendor->id }}" {{ (old('vendor_id', $selectedPo?->vendor_id) == $vendor->id) ? 'selected' : '' }}>
+                                {{ $vendor->name }} ({{ $vendor->phone ?? 'No phone' }})
+                            </option>
+                        @endforeach
+                    </select>
                     @error('vendor_id')
                         <p class="text-xs text-rose-500 mt-1 font-medium">{{ $message }}</p>
                     @enderror
@@ -58,7 +83,7 @@
                 <!-- Note -->
                 <div>
                     <label for="note" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Order Note (Optional)</label>
-                    <input type="text" name="note" id="note" value="{{ old('note') }}" placeholder="Invoice #, shipment ref..."
+                    <input type="text" name="note" id="note" value="{{ old('note', $selectedPo ? 'Converted from ' . $selectedPo->po_number : '') }}" placeholder="Invoice #, shipment ref..."
                            class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
                 </div>
             </div>
@@ -71,7 +96,7 @@
                     <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
                         <i class="fa-solid fa-boxes-stacked text-emerald-600"></i> Purchased Products
                     </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Select products and enter quantity and cost price.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Select products, packaging units, and cost price.</p>
                 </div>
                 <button type="button" onclick="addItemRow()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-plus"></i> Add Product
@@ -83,10 +108,11 @@
                 <table class="w-full text-left text-sm" id="itemsTable">
                     <thead class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                         <tr>
-                            <th class="px-4 py-3" style="width: 45%;">Product</th>
-                            <th class="px-4 py-3" style="width: 18%;">Quantity</th>
-                            <th class="px-4 py-3" style="width: 20%;">Purchase Price (Rs.)</th>
-                            <th class="px-4 py-3" style="width: 17%;">Subtotal (Rs.)</th>
+                            <th class="px-3 py-3" style="width: 35%;">Product</th>
+                            <th class="px-3 py-3" style="width: 20%;">Unit / Packaging</th>
+                            <th class="px-3 py-3 text-center" style="width: 15%;">Quantity</th>
+                            <th class="px-3 py-3 text-right" style="width: 15%;">Unit Cost (Rs.)</th>
+                            <th class="px-3 py-3 text-right" style="width: 10%;">Subtotal</th>
                             <th class="px-2 py-3 text-center" style="width: 5%;"></th>
                         </tr>
                     </thead>
@@ -95,8 +121,8 @@
                     </tbody>
                     <tfoot class="bg-slate-50 border-t border-slate-200 font-bold">
                         <tr>
-                            <td colspan="3" class="px-4 py-3.5 text-right text-slate-600">Grand Total:</td>
-                            <td class="px-4 py-3.5 text-slate-900 text-base font-black" id="grandTotalDisplay">Rs. 0.00</td>
+                            <td colspan="4" class="px-4 py-3.5 text-right text-slate-600">Grand Total:</td>
+                            <td class="px-3 py-3.5 text-right text-slate-900 text-base font-black" id="grandTotalDisplay">Rs. 0.00</td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -116,7 +142,7 @@
                 </div>
                 <div>
                     <p class="text-xs text-slate-400 uppercase font-semibold">Stock Action</p>
-                    <p class="text-sm font-bold text-slate-100">Items will be credited to inventory upon saving.</p>
+                    <p class="text-sm font-bold text-slate-100">Items will be credited to inventory in Base Units upon saving.</p>
                 </div>
             </div>
 
@@ -126,132 +152,202 @@
                 </a>
                 <button type="submit" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition flex items-center gap-2">
                     <i class="fa-solid fa-check"></i>
-                    <span>Confirm & Increase Stock</span>
+                    <span>Confirm &amp; Increase Stock</span>
                 </button>
             </div>
         </div>
     </form>
 </div>
 
-<!-- Product list JSON for JavaScript -->
+<!-- Product & PO list JSON for JavaScript -->
 <script>
     const availableProducts = @json($products);
+    const pendingOrdersList = @json($pendingOrders);
+    const preselectedPo = @json($selectedPo);
     let rowIndex = 0;
 
-    function addItemRow() {
+    function getProductUnits(productId) {
+        const product = availableProducts.find(p => p.id == productId);
+        if (!product) return [];
+
+        const list = [];
+        if (product.unit) {
+            list.push({
+                unit_id: product.unit.id,
+                name: product.unit.name,
+                short_code: product.unit.short_code,
+                conversion_rate: 1.0,
+                purchase_price: parseFloat(product.purchase_price) || 0,
+                is_base: true,
+            });
+        } else {
+            list.push({
+                unit_id: '',
+                name: 'Base Unit',
+                short_code: 'pc',
+                conversion_rate: 1.0,
+                purchase_price: parseFloat(product.purchase_price) || 0,
+                is_base: true,
+            });
+        }
+
+        if (product.secondary_units && product.secondary_units.length > 0) {
+            product.secondary_units.forEach(su => {
+                if (su.unit) {
+                    const conv = parseFloat(su.conversion_rate) || 1.0;
+                    const price = su.purchase_price !== null ? parseFloat(su.purchase_price) : (parseFloat(product.purchase_price) * conv);
+                    list.push({
+                        unit_id: su.unit.id,
+                        name: su.unit.name,
+                        short_code: su.unit.short_code,
+                        conversion_rate: conv,
+                        purchase_price: price,
+                        is_base: false,
+                    });
+                }
+            });
+        }
+
+        return list;
+    }
+
+    function addItemRow(data = null) {
         const container = document.getElementById('itemsContainer');
         const tr = document.createElement('tr');
         tr.id = `row_${rowIndex}`;
         tr.className = 'hover:bg-slate-50/50 transition';
 
-        let options = '<option value="">Select a Product</option>';
+        let productOptions = '<option value="">Select a Product</option>';
         availableProducts.forEach(p => {
-            const unitName  = p.unit ? p.unit.name      : '';
-            const unitCode  = p.unit ? p.unit.short_code : '';
-            const operator  = p.unit ? p.unit.operator   : '*';
-            const factor    = p.unit ? p.unit.conversion_factor : 1;
-            options += `<option value="${p.id}"
-                data-price="${p.purchase_price}"
-                data-stock="${p.quantity}"
-                data-unit-name="${unitName}"
-                data-unit-code="${unitCode}"
-                data-unit-op="${operator}"
-                data-unit-factor="${factor}"
-            >${p.name} (In stock: ${p.quantity}${unitCode ? ' ' + unitCode : ''})</option>`;
+            const selected = data && data.product_id == p.id ? 'selected' : '';
+            const baseUnit = p.unit ? p.unit.short_code : '';
+            productOptions += `<option value="${p.id}" ${selected}>${p.name} (Stock: ${p.quantity} ${baseUnit})</option>`;
         });
 
         tr.innerHTML = `
-            <td class="px-4 py-3">
+            <td class="p-3">
                 <select name="items[${rowIndex}][product_id]" required onchange="onProductSelect(this, ${rowIndex})"
-                        class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                    ${options}
+                        class="product-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                    ${productOptions}
                 </select>
             </td>
-            <td class="px-4 py-3">
-                <input type="number" min="1" value="1" name="items[${rowIndex}][quantity]" required oninput="calculateSubtotal(${rowIndex}); updateUnitHint(${rowIndex});"
-                       class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                <p class="text-[10px] text-emerald-600 font-semibold mt-0.5 pl-1 unit-hint-${rowIndex}"></p>
+            <td class="p-3">
+                <select name="items[${rowIndex}][unit_id]" onchange="onUnitSelect(this, ${rowIndex})"
+                        class="unit-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                    <option value="">Base Unit</option>
+                </select>
+                <input type="hidden" name="items[${rowIndex}][conversion_rate]" class="conversion-rate-input" value="1">
             </td>
-            <td class="px-4 py-3">
-                <div class="relative">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">Rs.</span>
-                    <input type="number" step="0.01" min="0" value="0.00" name="items[${rowIndex}][purchase_price]" required oninput="calculateSubtotal(${rowIndex})"
-                           class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                </div>
+            <td class="p-3">
+                <input type="number" min="1" value="${data ? data.quantity : 1}" name="items[${rowIndex}][quantity]" required oninput="calculateSubtotal(${rowIndex})"
+                       class="qty-input w-full px-3 py-2 text-xs font-bold text-center bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                <p class="text-[10px] text-emerald-600 font-semibold mt-0.5 text-center unit-hint-${rowIndex}"></p>
             </td>
-            <td class="px-4 py-3 font-bold text-slate-800" id="subtotal_${rowIndex}">
+            <td class="p-3">
+                <input type="number" step="0.01" min="0" value="${data ? parseFloat(data.purchase_price).toFixed(2) : '0.00'}" name="items[${rowIndex}][purchase_price]" required oninput="calculateSubtotal(${rowIndex})"
+                       class="price-input w-full px-3 py-2 text-xs font-bold text-right bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </td>
+            <td class="p-3 text-right font-black text-slate-800 text-xs" id="subtotal_${rowIndex}">
                 Rs. 0.00
             </td>
-            <td class="px-2 py-3 text-center">
+            <td class="p-3 text-center">
                 <button type="button" onclick="removeRow(${rowIndex})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Remove Row">
-                    <i class="fa-solid fa-xmark"></i>
+                    <i class="fa-solid fa-trash-can text-xs"></i>
                 </button>
             </td>
         `;
 
         container.appendChild(tr);
+
+        // Populate unit dropdown if product is pre-selected
+        if (data && data.product_id) {
+            updateUnitDropdown(rowIndex, data.product_id, data.unit_id);
+        }
+
+        const currIndex = rowIndex;
         rowIndex++;
-        updateGrandTotal();
+        calculateSubtotal(currIndex);
+    }
+
+    function updateUnitDropdown(id, productId, selectedUnitId = null, autoPrice = true) {
+        const row = document.getElementById(`row_${id}`);
+        if (!row) return;
+
+        const product = availableProducts.find(p => p.id == productId);
+        const targetUnitId = selectedUnitId || (product ? product.default_purchase_unit_id : null);
+
+        const unitSelect = row.querySelector('.unit-select');
+        const units = getProductUnits(productId);
+
+        let html = '';
+        units.forEach(u => {
+            const isSelected = targetUnitId ? (targetUnitId == u.unit_id) : u.is_base;
+            const label = u.is_base ? `${u.name} (${u.short_code}) [Base]` : `${u.name} (= ${u.conversion_rate} Base)`;
+            html += `<option value="${u.unit_id}" data-rate="${u.conversion_rate}" data-price="${u.purchase_price}" data-code="${u.short_code}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+        });
+
+        unitSelect.innerHTML = html;
+        onUnitSelect(unitSelect, id, autoPrice);
     }
 
     function onProductSelect(selectElement, id) {
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const defaultPrice = selectedOption.getAttribute('data-price') || 0;
-        const priceInput = document.querySelector(`input[name="items[${id}][purchase_price]"]`);
-        if (priceInput) {
-            priceInput.value = parseFloat(defaultPrice).toFixed(2);
-        }
-        calculateSubtotal(id);
-        updateUnitHint(id);
-    }
-
-    function updateUnitHint(id) {
-        const select    = document.querySelector(`select[name="items[${id}][product_id]"]`);
-        const qtyInput  = document.querySelector(`input[name="items[${id}][quantity]"]`);
-        const hintEl    = document.querySelector(`.unit-hint-${id}`);
-        if (!select || !qtyInput || !hintEl) { return; }
-
-        const opt       = select.options[select.selectedIndex];
-        const unitName  = opt ? opt.getAttribute('data-unit-name')   : '';
-        const unitCode  = opt ? opt.getAttribute('data-unit-code')   : '';
-        const operator  = opt ? opt.getAttribute('data-unit-op')     : '*';
-        const factor    = parseFloat(opt ? opt.getAttribute('data-unit-factor') : 1) || 1;
-        const qty       = parseFloat(qtyInput.value) || 0;
-
-        if (!unitName || factor === 1) {
-            hintEl.textContent = '';
+        const productId = selectElement.value;
+        if (!productId) {
+            document.getElementById(`row_${id}`).querySelector('.unit-select').innerHTML = '<option value="">Base Unit</option>';
+            calculateSubtotal(id);
             return;
         }
 
-        let baseQty;
-        if (operator === '*') {
-            baseQty = qty * factor;
-        } else {
-            baseQty = qty / factor;
+        updateUnitDropdown(id, productId, null, true);
+    }
+
+    function onUnitSelect(unitSelect, id, autoPrice = true) {
+        const row = document.getElementById(`row_${id}`);
+        if (!row) return;
+
+        const product = availableProducts.find(p => p.id == row.querySelector('.product-select')?.value);
+        const selectedOption = unitSelect.options[unitSelect.selectedIndex];
+        const rate = parseFloat(selectedOption?.getAttribute('data-rate') || 1.0);
+        let unitPrice = parseFloat(selectedOption?.getAttribute('data-price'));
+        if (isNaN(unitPrice) || unitPrice <= 0) {
+            unitPrice = (parseFloat(product?.purchase_price) || 0) * rate;
         }
 
-        const baseUnitLabel = unitCode === 'box'  ? 'pcs'
-                            : unitCode === 'ctn'  ? 'pcs'
-                            : unitCode === 'dz'   ? 'pcs'
-                            : unitCode === 'pack' ? 'pcs'
-                            : unitCode === 'g'    ? 'kg'
-                            : unitCode === 'ml'   ? 'ltr'
-                            : 'base units';
+        row.querySelector('.conversion-rate-input').value = rate;
 
-        hintEl.textContent = `≈ ${baseQty.toLocaleString()} ${baseUnitLabel} will be added to stock`;
+        if (autoPrice) {
+            row.querySelector('.price-input').value = unitPrice.toFixed(2);
+        }
+
+        calculateSubtotal(id);
     }
 
     function calculateSubtotal(id) {
-        const qtyInput = document.querySelector(`input[name="items[${id}][quantity]"]`);
-        const priceInput = document.querySelector(`input[name="items[${id}][purchase_price]"]`);
+        const row = document.getElementById(`row_${id}`);
+        if (!row) return;
+
+        const qtyInput = row.querySelector('.qty-input');
+        const priceInput = row.querySelector('.price-input');
+        const rateInput = row.querySelector('.conversion-rate-input');
         const subtotalCell = document.getElementById(`subtotal_${id}`);
+        const hintEl = row.querySelector(`.unit-hint-${id}`);
 
         const qty = parseFloat(qtyInput?.value) || 0;
         const price = parseFloat(priceInput?.value) || 0;
+        const rate = parseFloat(rateInput?.value) || 1.0;
         const subtotal = qty * price;
 
         if (subtotalCell) {
             subtotalCell.innerText = 'Rs. ' + subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        if (hintEl) {
+            if (rate > 1) {
+                const baseQty = qty * rate;
+                hintEl.innerText = `≈ ${baseQty.toLocaleString()} base units`;
+            } else {
+                hintEl.innerText = '';
+            }
         }
 
         updateGrandTotal();
@@ -259,9 +355,7 @@
 
     function removeRow(id) {
         const row = document.getElementById(`row_${id}`);
-        if (row) {
-            row.remove();
-        }
+        if (row) row.remove();
         updateGrandTotal();
     }
 
@@ -272,19 +366,53 @@
 
         rows.forEach(r => {
             const id = r.id.replace('row_', '');
-            const qty = parseFloat(document.querySelector(`input[name="items[${id}][quantity]"]`)?.value) || 0;
-            const price = parseFloat(document.querySelector(`input[name="items[${id}][purchase_price]"]`)?.value) || 0;
+            const qty = parseFloat(r.querySelector('.qty-input')?.value) || 0;
+            const price = parseFloat(r.querySelector('.price-input')?.value) || 0;
             total += qty * price;
         });
 
         document.getElementById('grandTotalDisplay').innerText = 'Rs. ' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // Initialize with 1 empty row
+    function onPoSelect(poId) {
+        if (!poId) {
+            document.getElementById('purchase_order_id').value = '';
+            return;
+        }
+
+        const po = pendingOrdersList.find(p => p.id == poId);
+        if (!po) return;
+
+        document.getElementById('purchase_order_id').value = po.id;
+        document.getElementById('vendor_id').value = po.vendor_id;
+        document.getElementById('note').value = `Converted from Purchase Order: ${po.po_number}`;
+
+        // Clear existing items and inject PO items
+        document.getElementById('itemsContainer').innerHTML = '';
+        rowIndex = 0;
+
+        if (po.items && po.items.length > 0) {
+            po.items.forEach(item => {
+                addItemRow({
+                    product_id: item.product_id,
+                    unit_id: item.unit_id,
+                    quantity: item.quantity,
+                    purchase_price: item.unit_price,
+                });
+            });
+        }
+    }
+
+    // Initialize with pre-selected PO or 1 empty row
     document.addEventListener('DOMContentLoaded', function() {
-        addItemRow();
+        if (preselectedPo && preselectedPo.items && preselectedPo.items.length > 0) {
+            onPoSelect(preselectedPo.id);
+        } else {
+            addItemRow();
+        }
     });
 </script>
+
 
 <!-- Quick Add Vendor Modal -->
 <div id="quickVendorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
