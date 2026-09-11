@@ -138,13 +138,16 @@ class PosController extends Controller
             }
 
             $paidAmount = (float) $validated['paid_amount'];
-            if ($paidAmount < $totalAmount) {
+            if ($paidAmount < $totalAmount && empty($validated['customer_id'])) {
                 throw ValidationException::withMessages([
-                    'paid_amount' => ['Paid amount (Rs. '.number_format($paidAmount, 2).') cannot be less than total amount (Rs. '.number_format($totalAmount, 2).').'],
+                    'customer_id' => ['Please select a Customer for Unpaid or Partially Paid invoices so the remaining balance (Rs. '.number_format($totalAmount - $paidAmount, 2).') is recorded in their ledger.'],
                 ]);
             }
 
-            $changeAmount = $paidAmount - $totalAmount;
+            $actualPaid = min($paidAmount, $totalAmount);
+            $changeAmount = max(0, $paidAmount - $totalAmount);
+            $dueAmount = max(0, $totalAmount - $paidAmount);
+            $paymentStatus = Sale::computePaymentStatus($paidAmount, $totalAmount);
             $invoiceNumber = 'INV-'.date('Ymd').'-'.strtoupper(Str::random(4));
 
             // 2. Create Sale
@@ -153,9 +156,11 @@ class PosController extends Controller
                 'invoice_number' => $invoiceNumber,
                 'customer_id' => $validated['customer_id'] ?? null,
                 'total_amount' => $totalAmount,
-                'paid_amount' => $paidAmount,
+                'paid_amount' => $actualPaid,
+                'due_amount' => $dueAmount,
                 'change_amount' => $changeAmount,
                 'payment_method' => $validated['payment_method'],
+                'payment_status' => $paymentStatus,
                 'note' => $validated['note'] ?? null,
             ]);
 
@@ -224,8 +229,11 @@ class PosController extends Controller
                     'date' => $sale->created_at->format('d M Y, h:i A'),
                     'customer' => $sale->customer_display_name,
                     'payment_method' => ucfirst(str_replace('_', ' ', $sale->payment_method)),
+                    'payment_status' => $sale->payment_status,
+                    'payment_status_label' => $sale->payment_status_label,
                     'total_amount' => $sale->total_amount,
                     'paid_amount' => $sale->paid_amount,
+                    'due_amount' => $sale->due_amount,
                     'change_amount' => $sale->change_amount,
                     'items' => $processedItems,
                 ],

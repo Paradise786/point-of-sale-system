@@ -138,6 +138,12 @@ class PurchaseReturnController extends Controller
                 'refund_amount' => $validated['refund_amount'] ?? $grandTotal,
             ]);
 
+            if (! empty($validated['purchase_id'])) {
+                Purchase::where('id', $validated['purchase_id'])->update([
+                    'payment_status' => 'return',
+                ]);
+            }
+
             return $purchaseReturn;
         });
 

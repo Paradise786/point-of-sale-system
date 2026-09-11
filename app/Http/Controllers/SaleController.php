@@ -12,6 +12,7 @@ class SaleController extends Controller
     public function index(Request $request): View
     {
         $search = $request->query('search');
+        $paymentStatus = $request->query('payment_status');
         $paymentMethod = $request->query('payment_method');
         $customerId = $request->query('customer_id');
         $dateFrom = $request->query('date_from');
@@ -29,6 +30,9 @@ class SaleController extends Controller
             ->when($customerId, function ($query, $customerId) {
                 return $query->where('customer_id', $customerId);
             })
+            ->when($paymentStatus, function ($query, $paymentStatus) {
+                return $query->where('payment_status', $paymentStatus);
+            })
             ->when($paymentMethod, function ($query, $paymentMethod) {
                 return $query->where('payment_method', $paymentMethod);
             })
@@ -43,9 +47,11 @@ class SaleController extends Controller
             ->withQueryString();
 
         $totalRevenue = Sale::sum('total_amount');
+        $totalPaid = Sale::sum('paid_amount');
+        $totalDue = Sale::sum('due_amount');
         $totalOrders = Sale::count();
 
-        return view('sales.index', compact('sales', 'customers', 'search', 'customerId', 'paymentMethod', 'dateFrom', 'dateTo', 'totalRevenue', 'totalOrders'));
+        return view('sales.index', compact('sales', 'customers', 'search', 'customerId', 'paymentStatus', 'paymentMethod', 'dateFrom', 'dateTo', 'totalRevenue', 'totalPaid', 'totalDue', 'totalOrders'));
     }
 
     public function show(Sale $sale): View

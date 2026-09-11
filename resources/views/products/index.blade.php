@@ -87,7 +87,7 @@
                                 @endif
                             </td>
                             <td class="px-5 py-4 font-mono text-xs text-slate-700 flex items-center gap-1.5">
-                                <i class="fa-solid fa-barcode text-slate-400 text-sm"></i>
+                                <img src="{{ route('products.barcode', $product) }}" alt="Barcode" class="h-12 inline-block mr-2" />
                                 <span>{{ $product->barcode }}</span>
                             </td>
                             <td class="px-5 py-4">

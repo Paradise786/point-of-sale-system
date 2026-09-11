@@ -31,6 +31,8 @@ Route::resource('categories', CategoryController::class)->except(['show']);
 Route::resource('units', UnitController::class)->except(['show']);
 Route::resource('products', ProductController::class)->except(['show']);
 
+Route::get('products/{product}/barcode', [ProductController::class, 'barcode'])->name('products.barcode');
+Route::get('products/{product}/print-barcode', [ProductController::class, 'printBarcode'])->name('products.printBarcode');
 // Customers & Vendors
 Route::resource('customers', CustomerController::class)->except(['show']);
 Route::resource('vendors', VendorController::class)->except(['show']);

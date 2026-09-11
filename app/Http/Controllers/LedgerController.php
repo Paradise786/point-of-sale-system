@@ -45,7 +45,7 @@ class LedgerController extends Controller
                         'type_badge' => 'bg-emerald-100 text-emerald-800',
                         'reference' => $sale->invoice_number,
                         'url' => route('sales.show', $sale),
-                        'description' => 'Sale Invoice #'.$sale->invoice_number,
+                        'description' => 'Sale Invoice #'.$sale->invoice_number.' ('.$sale->payment_status_label.')',
                         'debit' => (float) $sale->total_amount,
                         'credit' => 0.0,
                     ];
@@ -128,17 +128,35 @@ class LedgerController extends Controller
                 ->when($dateFrom, fn ($q) => $q->whereDate('purchase_date', '>=', $dateFrom))
                 ->when($dateTo, fn ($q) => $q->whereDate('purchase_date', '<=', $dateTo))
                 ->get()
-                ->map(function ($purchase) {
-                    return [
+                ->flatMap(function ($purchase) {
+                    $records = [];
+                    // Billed amount (We owe vendor -> Credit)
+                    $records[] = [
                         'date' => $purchase->purchase_date,
                         'type' => 'Purchase Invoice',
                         'type_badge' => 'bg-emerald-100 text-emerald-800',
                         'reference' => $purchase->reference_no,
                         'url' => route('purchases.show', $purchase),
-                        'description' => 'Purchase Invoice #'.$purchase->reference_no,
+                        'description' => 'Purchase Invoice #'.$purchase->reference_no.' ('.$purchase->payment_status_label.')',
                         'debit' => 0.0,
                         'credit' => (float) $purchase->total_amount,
                     ];
+
+                    // Payment made to vendor at purchase (Payment reduces payable -> Debit)
+                    if ($purchase->paid_amount > 0) {
+                        $records[] = [
+                            'date' => $purchase->purchase_date,
+                            'type' => 'Payment Made',
+                            'type_badge' => 'bg-blue-100 text-blue-800',
+                            'reference' => $purchase->reference_no,
+                            'url' => route('purchases.show', $purchase),
+                            'description' => 'Payment made via '.ucfirst($purchase->payment_method ?? 'cash'),
+                            'debit' => (float) $purchase->paid_amount,
+                            'credit' => 0.0,
+                        ];
+                    }
+
+                    return $records;
                 });
 
             // 2. Purchase Returns (Goods returned to vendor -> Debit, reduces what we owe)

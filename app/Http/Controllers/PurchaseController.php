@@ -21,6 +21,7 @@ class PurchaseController extends Controller
     {
         $search = $request->query('search');
         $vendorId = $request->query('vendor_id');
+        $paymentStatus = $request->query('payment_status');
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
 
@@ -36,6 +37,9 @@ class PurchaseController extends Controller
             ->when($vendorId, function ($query, $vendorId) {
                 return $query->where('vendor_id', $vendorId);
             })
+            ->when($paymentStatus, function ($query, $paymentStatus) {
+                return $query->where('payment_status', $paymentStatus);
+            })
             ->when($dateFrom, function ($query, $dateFrom) {
                 return $query->whereDate('purchase_date', '>=', $dateFrom);
             })
@@ -47,9 +51,11 @@ class PurchaseController extends Controller
             ->withQueryString();
 
         $totalPurchasesAmount = Purchase::sum('total_amount');
+        $totalPaidAmount = Purchase::sum('paid_amount');
+        $totalDueAmount = Purchase::sum('due_amount');
         $totalPurchasesCount = Purchase::count();
 
-        return view('purchases.index', compact('purchases', 'vendors', 'search', 'vendorId', 'dateFrom', 'dateTo', 'totalPurchasesAmount', 'totalPurchasesCount'));
+        return view('purchases.index', compact('purchases', 'vendors', 'search', 'vendorId', 'paymentStatus', 'dateFrom', 'dateTo', 'totalPurchasesAmount', 'totalPaidAmount', 'totalDueAmount', 'totalPurchasesCount'));
     }
 
     public function create(Request $request): View
@@ -77,6 +83,8 @@ class PurchaseController extends Controller
             'purchase_order_id' => ['nullable', 'exists:purchase_orders,id'],
             'vendor_id' => ['required', 'exists:vendors,id'],
             'purchase_date' => ['nullable', 'date'],
+            'paid_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_method' => ['nullable', 'string', 'in:cash,bank_transfer,cheque,online'],
             'note' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
@@ -99,6 +107,10 @@ class PurchaseController extends Controller
                 $totalAmount += $item['quantity'] * $item['purchase_price'];
             }
 
+            $paidAmount = isset($validated['paid_amount']) ? (float) $validated['paid_amount'] : 0.0;
+            $actualPaid = min($paidAmount, $totalAmount);
+            $dueAmount = max(0, $totalAmount - $paidAmount);
+            $paymentStatus = Purchase::computePaymentStatus($paidAmount, $totalAmount);
             $referenceNo = 'PI-'.date('Ymd').'-'.strtoupper(Str::random(4));
 
             $purchase = Purchase::create([
@@ -107,6 +119,10 @@ class PurchaseController extends Controller
                 'vendor_id' => $validated['vendor_id'],
                 'purchase_date' => $validated['purchase_date'] ?? now()->toDateString(),
                 'total_amount' => $totalAmount,
+                'paid_amount' => $actualPaid,
+                'due_amount' => $dueAmount,
+                'payment_status' => $paymentStatus,
+                'payment_method' => $validated['payment_method'] ?? 'cash',
                 'status' => 'received',
                 'note' => $validated['note'] ?? null,
             ]);

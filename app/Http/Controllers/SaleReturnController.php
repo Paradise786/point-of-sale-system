@@ -140,6 +140,12 @@ class SaleReturnController extends Controller
                 'refund_amount' => $validated['refund_amount'] ?? $grandTotal,
             ]);
 
+            if (! empty($validated['sale_id'])) {
+                Sale::where('id', $validated['sale_id'])->update([
+                    'payment_status' => 'return',
+                ]);
+            }
+
             return $saleReturn;
         });
 

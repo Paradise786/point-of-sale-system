@@ -237,6 +237,13 @@
 
                 <!-- Payment Details Container (Dynamic depending on payment method) -->
                 <div id="cashDetailsBox" class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Payment Breakdown</span>
+                        <span id="livePaymentStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            Paid (Full)
+                        </span>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Paid / Received (Rs.)</label>
@@ -244,7 +251,7 @@
                                    class="w-full px-3 py-2 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Change Return (Rs.)</label>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1" id="changeLabel">Change Return (Rs.)</label>
                             <div class="px-3 py-2 text-sm font-black text-slate-800 bg-slate-100 border border-slate-200 rounded-lg" id="changeAmountDisplay">
                                 Rs. 0.00
                             </div>
@@ -252,8 +259,9 @@
                     </div>
 
                     <!-- Quick Cash Amounts Shortcuts -->
-                    <div class="flex items-center gap-1.5 pt-1 text-[11px]">
-                        <button type="button" onclick="setQuickCash('exact')" class="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-600 font-bold transition">Exact</button>
+                    <div class="flex items-center gap-1.5 pt-1 text-[11px] flex-wrap">
+                        <button type="button" onclick="setQuickCash('exact')" class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded text-emerald-700 font-bold transition">Full Pay</button>
+                        <button type="button" onclick="setQuickCash('unpaid')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded text-rose-700 font-bold transition">Unpaid (0)</button>
                         <button type="button" onclick="addCashShortcut(500)" class="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-600 font-bold transition">+500</button>
                         <button type="button" onclick="addCashShortcut(1000)" class="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-600 font-bold transition">+1,000</button>
                         <button type="button" onclick="addCashShortcut(5000)" class="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-600 font-bold transition">+5,000</button>
@@ -354,10 +362,18 @@
                         <span id="receiptTotal"></span>
                     </div>
                     <div class="flex justify-between text-slate-600">
+                        <span>Invoice Status:</span>
+                        <span id="receiptStatus" class="font-bold"></span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
                         <span>Amount Paid:</span>
                         <span id="receiptPaid"></span>
                     </div>
-                    <div class="flex justify-between text-slate-600">
+                    <div class="flex justify-between text-slate-600" id="receiptDueRow">
+                        <span>Remaining Due:</span>
+                        <span id="receiptDue" class="font-bold text-amber-700"></span>
+                    </div>
+                    <div class="flex justify-between text-slate-600" id="receiptChangeRow">
                         <span>Change Given:</span>
                         <span id="receiptChange"></span>
                     </div>
@@ -802,14 +818,51 @@
         function calculateChange() {
             const total = getCartTotal();
             const paid = parseFloat(document.getElementById('paidAmountInput').value) || 0;
-            const change = Math.max(0, paid - total);
-            document.getElementById('changeAmountDisplay').innerText = 'Rs. ' + change.toFixed(2);
+            const changeDisplay = document.getElementById('changeAmountDisplay');
+            const changeLabel = document.getElementById('changeLabel');
+            const statusBadge = document.getElementById('livePaymentStatusBadge');
+
+            if (paid >= total) {
+                const change = paid - total;
+                if (changeLabel) changeLabel.innerText = 'Change Return (Rs.)';
+                if (changeDisplay) {
+                    changeDisplay.innerText = 'Rs. ' + change.toFixed(2);
+                    changeDisplay.className = 'px-3 py-2 text-sm font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg';
+                }
+                if (statusBadge) {
+                    statusBadge.innerText = 'Paid (Full)';
+                    statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+                }
+            } else if (paid > 0) {
+                const due = total - paid;
+                if (changeLabel) changeLabel.innerText = 'Remaining Due (Ledger)';
+                if (changeDisplay) {
+                    changeDisplay.innerText = 'Rs. ' + due.toFixed(2);
+                    changeDisplay.className = 'px-3 py-2 text-sm font-black text-amber-700 bg-amber-50 border border-amber-200 rounded-lg';
+                }
+                if (statusBadge) {
+                    statusBadge.innerText = 'Partially Paid';
+                    statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
+                }
+            } else {
+                if (changeLabel) changeLabel.innerText = 'Unpaid Due (Ledger)';
+                if (changeDisplay) {
+                    changeDisplay.innerText = 'Rs. ' + total.toFixed(2);
+                    changeDisplay.className = 'px-3 py-2 text-sm font-black text-rose-700 bg-rose-50 border border-rose-200 rounded-lg';
+                }
+                if (statusBadge) {
+                    statusBadge.innerText = 'Unpaid';
+                    statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300';
+                }
+            }
         }
 
         function setQuickCash(type) {
             const total = getCartTotal();
             if (type === 'exact') {
                 document.getElementById('paidAmountInput').value = total.toFixed(2);
+            } else if (type === 'unpaid') {
+                document.getElementById('paidAmountInput').value = '0.00';
             }
             calculateChange();
         }
@@ -846,7 +899,7 @@
             const total = getCartTotal();
             if (method !== 'cash') {
                 document.getElementById('paidAmountInput').value = total.toFixed(2);
-                document.getElementById('changeAmountDisplay').innerText = 'Rs. 0.00';
+                calculateChange();
             } else {
                 calculateChange();
             }
@@ -858,9 +911,11 @@
 
             const total = getCartTotal();
             const paid = parseFloat(document.getElementById('paidAmountInput').value) || 0;
+            const customerId = document.getElementById('customerSelect').value || null;
 
-            if (paid < total) {
-                alert(`Paid amount (Rs. ${paid.toFixed(2)}) is less than total payable (Rs. ${total.toFixed(2)}).`);
+            if (paid < total && !customerId) {
+                alert(`Please select a Customer for Unpaid or Partially Paid invoices so the remaining balance (Rs. ${(total - paid).toFixed(2)}) is credited to their ledger.`);
+                document.getElementById('customerSelect').focus();
                 return;
             }
 
@@ -951,9 +1006,29 @@
             document.getElementById('receiptDate').innerText = sale.date;
             document.getElementById('receiptCustomer').innerText = sale.customer;
             document.getElementById('receiptPayment').innerText = sale.payment_method;
+            document.getElementById('receiptStatus').innerText = sale.payment_status_label;
             document.getElementById('receiptTotal').innerText = 'Rs. ' + parseFloat(sale.total_amount).toFixed(2);
             document.getElementById('receiptPaid').innerText = 'Rs. ' + parseFloat(sale.paid_amount).toFixed(2);
-            document.getElementById('receiptChange').innerText = 'Rs. ' + parseFloat(sale.change_amount).toFixed(2);
+
+            const due = parseFloat(sale.due_amount) || 0;
+            const change = parseFloat(sale.change_amount) || 0;
+            const dueRow = document.getElementById('receiptDueRow');
+            const changeRow = document.getElementById('receiptChangeRow');
+
+            if (due > 0) {
+                if (dueRow) dueRow.classList.remove('hidden');
+                document.getElementById('receiptDue').innerText = 'Rs. ' + due.toFixed(2);
+            } else {
+                if (dueRow) dueRow.classList.add('hidden');
+            }
+
+            if (change > 0) {
+                if (changeRow) changeRow.classList.remove('hidden');
+                document.getElementById('receiptChange').innerText = 'Rs. ' + change.toFixed(2);
+            } else {
+                if (changeRow) changeRow.classList.add('hidden');
+            }
+
             document.getElementById('receiptFullInvoiceLink').href = invoiceUrl;
 
             let itemsHtml = '';
