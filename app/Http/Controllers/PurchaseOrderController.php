@@ -3,11 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\Purchase;
-use App\Models\PurchaseItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
-use App\Models\StockMovement;
 use App\Models\Vendor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -122,62 +119,7 @@ class PurchaseOrderController extends Controller
             return back()->with('error', 'This purchase order has already been converted to an invoice.');
         }
 
-        DB::transaction(function () use ($purchaseOrder) {
-            $refNo = 'PI-'.date('Ymd').'-'.strtoupper(Str::random(4));
-
-            $purchase = Purchase::create([
-                'purchase_order_id' => $purchaseOrder->id,
-                'reference_no' => $refNo,
-                'vendor_id' => $purchaseOrder->vendor_id,
-                'purchase_date' => now()->toDateString(),
-                'total_amount' => $purchaseOrder->total_amount,
-                'status' => 'received',
-                'note' => "Converted from Purchase Order: {$purchaseOrder->po_number}",
-            ]);
-
-            foreach ($purchaseOrder->items as $item) {
-                $conversionRate = (float) ($item->conversion_rate ?? 1.0);
-                $baseQuantity = $item->quantity * $conversionRate;
-
-                PurchaseItem::create([
-                    'purchase_id' => $purchase->id,
-                    'product_id' => $item->product_id,
-                    'unit_id' => $item->unit_id,
-                    'conversion_rate' => $conversionRate,
-                    'quantity' => $item->quantity,
-                    'base_quantity' => $baseQuantity,
-                    'purchase_price' => $item->unit_price,
-                    'subtotal' => $item->subtotal,
-                ]);
-
-                // Increase physical stock in BASE UNITS
-                $product = Product::lockForUpdate()->find($item->product_id);
-                if ($product) {
-                    $beforeQty = $product->quantity;
-                    $product->increment('quantity', $baseQuantity);
-                    $afterQty = $beforeQty + $baseQuantity;
-
-                    $unitLabel = $item->unit ? $item->unit->short_code : ($product->unit ? $product->unit->short_code : 'units');
-
-                    StockMovement::create([
-                        'product_id' => $product->id,
-                        'type' => 'purchase',
-                        'quantity' => $baseQuantity,
-                        'before_quantity' => $beforeQty,
-                        'after_quantity' => $afterQty,
-                        'reference' => $refNo,
-                        'notes' => "Stock in: {$item->quantity} {$unitLabel} ({$baseQuantity} base units) from PO: {$purchaseOrder->po_number}",
-                    ]);
-                }
-            }
-
-            $purchaseOrder->update([
-                'status' => 'converted',
-                'converted_purchase_id' => $purchase->id,
-            ]);
-        });
-
-        return redirect()->route('purchases.index')
-            ->with('success', "Purchase Order {$purchaseOrder->po_number} successfully converted to Purchase Invoice & Stock updated!");
+        return redirect()->route('purchases.create', ['purchase_order_id' => $purchaseOrder->id])
+            ->with('info', "Purchase Order {$purchaseOrder->po_number} loaded into Invoice Create form. Review details and complete the purchase.");
     }
 }

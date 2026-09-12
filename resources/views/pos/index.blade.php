@@ -247,7 +247,7 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Paid / Received (Rs.)</label>
-                            <input type="number" step="0.01" min="0" id="paidAmountInput" oninput="calculateChange()" placeholder="0.00"
+                            <input type="number" step="0.01" min="0" id="paidAmountInput" oninput="isCustomPaidAmount = true; calculateChange();" placeholder="0.00"
                                    class="w-full px-3 py-2 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                         </div>
                         <div>
@@ -689,6 +689,8 @@
             renderCart();
         }
 
+        let isCustomPaidAmount = false;
+
         function updateCartQty(itemIndex, newQty) {
             const item = cart[itemIndex];
             if (!item) return;
@@ -699,10 +701,12 @@
                 return;
             }
 
-            const maxAllowed = Math.floor(item.stock / item.conversion_rate);
-            if (newQty > maxAllowed) {
-                alert(`Only ${item.stock} base units in stock (maximum ${maxAllowed} ${item.unit_name}).`);
-                item.quantity = maxAllowed > 0 ? maxAllowed : 1;
+            const stock = parseFloat(item.stock) || 0;
+            const conv = parseFloat(item.conversion_rate) || 1.0;
+            const maxAllowed = conv > 0 ? Math.floor(stock / conv) : 9999;
+            if (maxAllowed > 0 && newQty > maxAllowed) {
+                alert(`Only ${stock} base units in stock (maximum ${maxAllowed} ${item.unit_name}).`);
+                item.quantity = maxAllowed;
             } else {
                 item.quantity = newQty;
             }
@@ -718,6 +722,7 @@
         function clearCart() {
             if (cart.length === 0) return;
             cart = [];
+            isCustomPaidAmount = false;
             renderCart();
         }
 
@@ -778,13 +783,13 @@
 
                         <!-- Quantity Stepper -->
                         <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity - 1})" class="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-600 hover:text-rose-600 text-xs font-bold shadow-xs">
-                                -
+                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity - 1})" class="w-6 h-6 flex items-center justify-center bg-white rounded text-slate-600 hover:text-rose-600 text-xs font-bold shadow-xs active:bg-slate-200 cursor-pointer">
+                                <i class="fa-solid fa-minus text-[10px]"></i>
                             </button>
-                            <input type="number" min="1" value="${item.quantity}" onchange="updateCartQty(${index}, this.value)"
-                                   class="w-7 text-center text-xs font-bold bg-transparent border-0 focus:outline-none p-0">
-                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity + 1})" class="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-600 hover:text-emerald-600 text-xs font-bold shadow-xs">
-                                +
+                            <input type="number" min="1" value="${item.quantity}" oninput="updateCartQty(${index}, this.value)" onchange="updateCartQty(${index}, this.value)"
+                                   class="w-9 text-center text-xs font-bold bg-white border border-slate-200 rounded py-0.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity + 1})" class="w-6 h-6 flex items-center justify-center bg-white rounded text-slate-600 hover:text-emerald-600 text-xs font-bold shadow-xs active:bg-slate-200 cursor-pointer">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
                             </button>
                         </div>
 
@@ -804,8 +809,8 @@
             document.getElementById('cartTotalDisplay').innerText = 'Rs. ' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             checkoutBtn.disabled = false;
 
-            // Update cash if exact
-            if (!document.getElementById('paidAmountInput').value) {
+            // Automatically sync paid amount if not manually changed by user to partial/custom
+            if (!isCustomPaidAmount || selectedPaymentMethod !== 'cash') {
                 document.getElementById('paidAmountInput').value = total.toFixed(2);
             }
             calculateChange();
@@ -860,14 +865,17 @@
         function setQuickCash(type) {
             const total = getCartTotal();
             if (type === 'exact') {
+                isCustomPaidAmount = false;
                 document.getElementById('paidAmountInput').value = total.toFixed(2);
             } else if (type === 'unpaid') {
+                isCustomPaidAmount = true;
                 document.getElementById('paidAmountInput').value = '0.00';
             }
             calculateChange();
         }
 
         function addCashShortcut(amount) {
+            isCustomPaidAmount = true;
             const current = parseFloat(document.getElementById('paidAmountInput').value) || 0;
             document.getElementById('paidAmountInput').value = (current + amount).toFixed(2);
             calculateChange();

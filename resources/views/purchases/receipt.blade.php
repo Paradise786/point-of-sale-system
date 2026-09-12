@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thermal Receipt – {{ $sale->invoice_number }}</title>
+    <title>Purchase Receipt – {{ $purchase->reference_no }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -113,20 +113,6 @@
             padding: 4px 0;
         }
 
-        .policy-section {
-            font-size: 8.5px;
-            line-height: 1.3;
-            margin-top: 8px;
-            text-align: left;
-        }
-
-        .policy-title {
-            font-size: 11px;
-            font-weight: 900;
-            text-align: center;
-            margin-bottom: 3px;
-        }
-
         .software-credit {
             font-size: 8px;
             color: #444;
@@ -189,8 +175,8 @@
         <div class="receipt-container" id="thermalReceipt">
             <!-- Store Header -->
             <div class="text-center">
-                <div class="brand-name">🏪 SMART POS SYSTEM</div>
-                <div class="tagline">Quality is our Priority</div>
+                <div class="brand-name">📦 PURCHASE INVOICE RECEIPT</div>
+                <div class="tagline">Goods Receiving &amp; Supplier Voucher</div>
                 <div class="branch-address">Main Commercial Market, Model Town</div>
                 <div class="phone-numbers">Mob # 0300-8527070 , 0345-0876111</div>
             </div>
@@ -199,16 +185,16 @@
 
             <!-- Invoice Meta -->
             <div class="meta-row">
-                <span class="font-bold">No . {{ $sale->invoice_number }}</span>
-                <span>{{ $sale->created_at->format('d/m/Y H:i:s') }}</span>
+                <span class="font-bold">Ref: {{ $purchase->reference_no }}</span>
+                <span>{{ $purchase->created_at->format('d/m/Y H:i:s') }}</span>
             </div>
             <div class="info-row">
-                <span class="font-bold">M/s: </span>
-                <span class="uppercase">{{ $sale->customer ? $sale->customer->name : 'CASH SALES CUSTOMER' }}</span>
+                <span class="font-bold">Vendor: </span>
+                <span class="uppercase">{{ $purchase->vendor ? $purchase->vendor->name : 'N/A' }}</span>
             </div>
             <div class="meta-row">
-                <span>Remarks: {{ $sale->description ?: ($sale->note ?: '-') }}</span>
-                <span>Ref.: {{ $sale->extra_field_one ?: '-' }}</span>
+                <span>Remarks: {{ $purchase->description ?: ($purchase->note ?: '-') }}</span>
+                <span>Ref.: {{ $purchase->extra_field_one ?: '-' }}</span>
             </div>
 
             <div class="dashed-line"></div>
@@ -219,12 +205,12 @@
                     <tr>
                         <th class="text-left" style="width:48%;">Item Name</th>
                         <th class="text-center" style="width:14%;">Qty</th>
-                        <th class="text-right" style="width:18%;">Price</th>
+                        <th class="text-right" style="width:18%;">Cost</th>
                         <th class="text-right" style="width:20%;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($sale->items as $item)
+                    @foreach ($purchase->items as $item)
                         <tr>
                             <td class="text-left font-bold">
                                 {{ $item->product->name ?? 'Deleted Item' }}
@@ -233,7 +219,7 @@
                                 @endif
                             </td>
                             <td class="text-center">{{ $item->quantity }}</td>
-                            <td class="text-right">{{ number_format($item->price, 2) }}</td>
+                            <td class="text-right">{{ number_format($item->purchase_price, 2) }}</td>
                             <td class="text-right font-bold">{{ number_format($item->subtotal, 2) }}</td>
                         </tr>
                     @endforeach
@@ -244,50 +230,38 @@
 
             <!-- Summary & Totals -->
             <div class="meta-row">
-                <span class="font-bold">Total items: {{ $sale->items->count() }} ({{ $sale->items->sum('quantity') }} Qty)</span>
+                <span class="font-bold">Total items: {{ $purchase->items->count() }} ({{ $purchase->items->sum('quantity') }} Qty)</span>
             </div>
 
             <table class="totals-table">
                 <tr>
                     <td class="text-right font-bold" style="width:65%;">Gross Total :</td>
-                    <td class="text-right font-bold">{{ number_format($sale->total_amount, 2) }}</td>
-                </tr>
-                @if($sale->paid_amount < $sale->total_amount)
-                <tr>
-                    <td class="text-right">Paid Amount :</td>
-                    <td class="text-right">{{ number_format($sale->paid_amount, 2) }}</td>
+                    <td class="text-right font-bold">{{ number_format($purchase->total_amount, 2) }}</td>
                 </tr>
                 <tr>
-                    <td class="text-right font-bold" style="color:#b91c1c;">Remaining Due :</td>
-                    <td class="text-right font-bold" style="color:#b91c1c;">{{ number_format($sale->due_amount, 2) }}</td>
+                    <td class="text-right">Paid to Vendor :</td>
+                    <td class="text-right">{{ number_format($purchase->paid_amount, 2) }}</td>
+                </tr>
+                @if($purchase->due_amount > 0)
+                <tr>
+                    <td class="text-right font-bold" style="color:#b91c1c;">Payable (Ledger) :</td>
+                    <td class="text-right font-bold" style="color:#b91c1c;">{{ number_format($purchase->due_amount, 2) }}</td>
                 </tr>
                 @endif
             </table>
 
             <div class="dashed-line"></div>
 
-            <!-- Net Total & Cashier -->
+            <!-- Net Total & Receiver -->
             <div class="meta-row net-total-row">
-                <span class="uppercase">CASHIER / ADMIN</span>
-                <span class="text-right">Net Total. {{ number_format($sale->total_amount, 2) }}</span>
+                <span class="uppercase">RECEIVED BY STORE</span>
+                <span class="text-right">Net Total. {{ number_format($purchase->total_amount, 2) }}</span>
             </div>
 
             <!-- Status & Method -->
             <div class="meta-row" style="margin-top: 4px; font-size:9.5px;">
-                <span>Payment: <strong class="uppercase">{{ str_replace('_', ' ', $sale->payment_method) }}</strong></span>
-                <span>Status: <strong class="uppercase">{{ $sale->payment_status_label }}</strong></span>
-            </div>
-
-            <!-- Return & Exchange Policy -->
-            <div class="dashed-line"></div>
-            <div class="policy-section">
-                <div class="text-center" style="font-weight:bold; margin-bottom:2px;">Thank you for shopping with us!</div>
-                <div class="policy-title">Return & Exchange Policy.</div>
-                <div>• Garments may be exchanged for garments items only within 4 days if unused, tagged, and accompanied by the original bill.</div>
-                <div>• Other items may be exchanged within 3 days.</div>
-                <div>• Sales items, Food, and hygiene items are non-exchangeable.</div>
-                <div>• No cash refunds. Remaining balance adjusted in customer ledger.</div>
-                <div>• We value your understanding and continued trust in our store.</div>
+                <span>Payment: <strong class="uppercase">{{ str_replace('_', ' ', $purchase->payment_method ?? 'cash') }}</strong></span>
+                <span>Status: <strong class="uppercase">{{ $purchase->payment_status_label }}</strong></span>
             </div>
 
             <!-- Credit Footer -->
@@ -298,8 +272,8 @@
 
         <div class="action-buttons">
             <button class="btn btn-print" onclick="window.print()">🖨️ Print Receipt</button>
-            <a href="{{ route('sales.index') }}" class="btn btn-back">← Back to Invoices</a>
-            <a href="{{ route('sales.create') }}" class="btn btn-back">+ New Sale</a>
+            <a href="{{ route('purchases.index') }}" class="btn btn-back">← Back to Purchases</a>
+            <a href="{{ route('purchases.create') }}" class="btn btn-back">+ New Purchase</a>
         </div>
     </div>
 

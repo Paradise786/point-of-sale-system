@@ -9,6 +9,10 @@
             <p class="text-xs text-slate-500 mt-0.5">All completed sales transactions and generated invoices.</p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{{ route('sales.create') }}" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>+ New Sale Invoice</span>
+            </a>
             <a href="{{ route('pos.index') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span>Open POS Terminal</span>

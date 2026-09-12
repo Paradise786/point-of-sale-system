@@ -9,6 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\StockMovement;
 use App\Models\Unit;
 use App\Models\Vendor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +87,8 @@ class PurchaseController extends Controller
             'paid_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_method' => ['nullable', 'string', 'in:cash,bank_transfer,cheque,online'],
             'note' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'extra_field_one' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
             'items.*.unit_id' => ['nullable', 'exists:units,id'],
@@ -101,7 +104,7 @@ class PurchaseController extends Controller
             }
         }
 
-        DB::transaction(function () use ($validated) {
+        $purchase = DB::transaction(function () use ($validated) {
             $totalAmount = 0;
             foreach ($validated['items'] as $item) {
                 $totalAmount += $item['quantity'] * $item['purchase_price'];
@@ -125,6 +128,8 @@ class PurchaseController extends Controller
                 'payment_method' => $validated['payment_method'] ?? 'cash',
                 'status' => 'received',
                 'note' => $validated['note'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'extra_field_one' => $validated['extra_field_one'] ?? null,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -176,10 +181,22 @@ class PurchaseController extends Controller
                     ]);
                 }
             }
+
+            return $purchase;
         });
 
-        return redirect()->route('purchases.index')
+        return redirect()->route('purchases.receipt', $purchase)
             ->with('success', 'Purchase invoice created successfully and inventory updated.');
+    }
+
+    public function fetchFromOrder(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $purchaseOrder->load(['vendor', 'items.product.unit', 'items.product.secondaryUnits.unit', 'items.unit']);
+
+        return response()->json([
+            'success' => true,
+            'order' => $purchaseOrder,
+        ]);
     }
 
     public function show(Purchase $purchase): View
@@ -187,5 +204,17 @@ class PurchaseController extends Controller
         $purchase->load(['vendor', 'purchaseOrder', 'items.product.unit', 'items.unit']);
 
         return view('purchases.show', compact('purchase'));
+    }
+
+    public function receipt(Purchase $purchase): View
+    {
+        $purchase->load(['vendor', 'items.product.unit', 'items.unit']);
+
+        return view('purchases.receipt', compact('purchase'));
+    }
+
+    public function printPreview(Purchase $purchase): View
+    {
+        return $this->receipt($purchase);
     }
 }

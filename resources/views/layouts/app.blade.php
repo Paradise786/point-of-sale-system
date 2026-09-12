@@ -180,10 +180,23 @@
 
             <!-- Footer / System status -->
             <div class="p-4 border-t border-slate-800 text-xs text-slate-400">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 mb-2">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span class="font-medium">System Online</span>
                 </div>
+                @if(auth()->check())
+                    <div class="text-xs text-slate-300 mb-1">
+                        <i class="fa-solid fa-user-circle mr-1"></i> {{ auth()->user()->name }}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="text-xs text-slate-400 hover:text-rose-500 transition">
+                                <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout
+                            </button>
+                        </form>
+                    </div>
+                @endif
                 <p class="text-[11px] text-slate-500 mt-1">SmartPOS v1.0 • Laravel 12</p>
             </div>
         </aside>

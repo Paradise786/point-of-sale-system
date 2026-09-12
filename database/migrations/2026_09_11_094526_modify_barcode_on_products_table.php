@@ -12,7 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->string('barcode')->nullable()->unique()->change();
+            // Drop the unique index first if it already exists (idempotent)
+            try {
+                $table->dropUnique(['barcode']);
+            } catch (Exception $e) {
+                // Index may not exist yet – that's fine
+            }
+            $table->string('barcode')->nullable()->change();
+            $table->unique('barcode');
         });
     }
 

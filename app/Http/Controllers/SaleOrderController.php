@@ -4,11 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Product;
-use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
-use App\Models\StockMovement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -122,71 +119,7 @@ class SaleOrderController extends Controller
             return back()->with('error', 'This sale order has already been converted to an invoice.');
         }
 
-        $paymentMethod = $request->input('payment_method', 'cash');
-
-        // Check stock availability in base units
-        foreach ($saleOrder->items as $item) {
-            $rate = (float) ($item->conversion_rate ?? 1.0);
-            $baseRequired = $item->quantity * $rate;
-            if ($item->product->quantity < $baseRequired) {
-                return back()->with('error', "Insufficient stock for '{$item->product->name}'. Available: {$item->product->quantity} base units, Requested: {$baseRequired} base units.");
-            }
-        }
-
-        DB::transaction(function () use ($saleOrder, $paymentMethod) {
-            $invoiceNumber = 'SI-'.date('Ymd').'-'.strtoupper(Str::random(4));
-
-            $sale = Sale::create([
-                'sale_order_id' => $saleOrder->id,
-                'invoice_number' => $invoiceNumber,
-                'customer_id' => $saleOrder->customer_id,
-                'total_amount' => $saleOrder->total_amount,
-                'paid_amount' => $saleOrder->total_amount,
-                'change_amount' => 0,
-                'payment_method' => $paymentMethod,
-                'note' => "Converted from Sale Order: {$saleOrder->so_number}",
-            ]);
-
-            foreach ($saleOrder->items as $item) {
-                $conversionRate = (float) ($item->conversion_rate ?? 1.0);
-                $baseQuantity = $item->quantity * $conversionRate;
-
-                SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $item->product_id,
-                    'unit_id' => $item->unit_id,
-                    'conversion_rate' => $conversionRate,
-                    'quantity' => $item->quantity,
-                    'base_quantity' => $baseQuantity,
-                    'price' => $item->unit_price,
-                    'subtotal' => $item->subtotal,
-                ]);
-
-                // Reduce stock now upon invoice creation in BASE UNITS
-                $beforeQty = $item->product->quantity;
-                $item->product->decrement('quantity', $baseQuantity);
-                $afterQty = $beforeQty - $baseQuantity;
-
-                $unitLabel = $item->unit ? $item->unit->short_code : ($item->product->unit ? $item->product->unit->short_code : 'units');
-
-                StockMovement::create([
-                    'product_id' => $item->product_id,
-                    'type' => 'sale',
-                    'quantity' => $baseQuantity,
-                    'before_quantity' => $beforeQty,
-                    'after_quantity' => $afterQty,
-                    'reference' => $invoiceNumber,
-                    'notes' => "Stock out: {$item->quantity} {$unitLabel} ({$baseQuantity} base units) from converted SO: {$saleOrder->so_number}",
-                ]);
-            }
-
-            $saleOrder->update([
-                'status' => 'converted',
-                'converted_sale_id' => $sale->id,
-            ]);
-        });
-
-        return redirect()->route('sales.index')
-            ->with('success', "Sale Order {$saleOrder->so_number} successfully converted to Sale Invoice & Stock updated!");
+        return redirect()->route('sales.create', ['sale_order_id' => $saleOrder->id])
+            ->with('info', "Sale Order {$saleOrder->so_number} loaded into Invoice Create form. Review details and complete the sale.");
     }
 }

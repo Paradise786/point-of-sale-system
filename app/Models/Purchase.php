@@ -18,6 +18,8 @@ class Purchase extends Model
         'payment_method',
         'status',
         'note',
+        'description',
+        'extra_field_one',
     ];
 
     protected $casts = [

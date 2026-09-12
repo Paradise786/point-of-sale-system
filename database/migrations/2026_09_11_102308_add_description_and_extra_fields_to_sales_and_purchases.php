@@ -12,23 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sales', function (Blueprint $table) {
-    if (!Schema::hasColumn('sales', 'description')) {
-        $table->text('description')->nullable()->after('note');
-    }
-    if (!Schema::hasColumn('sales', 'extra_field_one')) {
-        $table->string('extra_field_one')->nullable()->after('description');
-    }
-});
+            if (! Schema::hasColumn('sales', 'description')) {
+                $table->text('description')->nullable()->after('note');
+            }
+            if (! Schema::hasColumn('sales', 'extra_field_one')) {
+                $table->string('extra_field_one')->nullable()->after('description');
+            }
+        });
 
-Schema::table('purchases', function (Blueprint $table) {
-    if (!Schema::hasColumn('purchases', 'description')) {
-        $table->text('description')->nullable()->after('note');
-    }
-    if (!Schema::hasColumn('purchases', 'extra_field_one')) {
-        $table->string('extra_field_one')->nullable()->after('description');
-    }
-});
-            //
+        Schema::table('purchases', function (Blueprint $table) {
+            if (! Schema::hasColumn('purchases', 'description')) {
+                $table->text('description')->nullable()->after('note');
+            }
+            if (! Schema::hasColumn('purchases', 'extra_field_one')) {
+                $table->string('extra_field_one')->nullable()->after('description');
+            }
         });
     }
 
@@ -37,8 +35,12 @@ Schema::table('purchases', function (Blueprint $table) {
      */
     public function down(): void
     {
-        Schema::table('sales,purchases', function (Blueprint $table) {
-            //
+        Schema::table('sales', function (Blueprint $table) {
+            $table->dropColumn(['description', 'extra_field_one']);
+        });
+
+        Schema::table('purchases', function (Blueprint $table) {
+            $table->dropColumn(['description', 'extra_field_one']);
         });
     }
 };

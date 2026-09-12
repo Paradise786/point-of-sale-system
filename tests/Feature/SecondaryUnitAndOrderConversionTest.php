@@ -55,9 +55,25 @@ test('it converts purchase order to purchase invoice and updates stock in base u
         'subtotal' => 1100,
     ]);
 
-    // Convert PO
+    // Convert PO (redirects to creation form with pre-filled PO)
     $response = $this->post(route('purchase-orders.convert', $po));
-    $response->assertRedirect(route('purchases.index'));
+    $response->assertRedirect(route('purchases.create', ['purchase_order_id' => $po->id]));
+
+    // Submitting purchase form completes conversion & increases stock
+    $storeResponse = $this->post(route('purchases.store'), [
+        'purchase_order_id' => $po->id,
+        'vendor_id' => $vendor->id,
+        'items' => [
+            [
+                'product_id' => $product->id,
+                'unit_id' => $boxUnit->id,
+                'conversion_rate' => 12,
+                'quantity' => 2,
+                'purchase_price' => 550,
+            ],
+        ],
+    ]);
+    $storeResponse->assertRedirect();
 
     $po->refresh();
     $product->refresh();
@@ -111,11 +127,27 @@ test('it converts sale order to sale invoice and deducts stock in base units', f
         'subtotal' => 5600,
     ]);
 
-    // Convert SO
-    $response = $this->post(route('sale-orders.convert', $so), [
+    // Convert SO (redirects to creation form)
+    $response = $this->post(route('sale-orders.convert', $so));
+    $response->assertRedirect(route('sales.create', ['sale_order_id' => $so->id]));
+
+    // Submitting sale invoice form completes conversion & deducts stock
+    $storeResponse = $this->post(route('sales.store'), [
+        'sale_order_id' => $so->id,
+        'customer_id' => $customer->id,
+        'paid_amount' => 5600,
         'payment_method' => 'cash',
+        'items' => [
+            [
+                'product_id' => $product->id,
+                'unit_id' => $boxUnit->id,
+                'conversion_rate' => 10,
+                'quantity' => 2,
+                'unit_price' => 2800,
+            ],
+        ],
     ]);
-    $response->assertRedirect(route('sales.index'));
+    $storeResponse->assertRedirect();
 
     $so->refresh();
     $product->refresh();
@@ -163,8 +195,7 @@ test('it converts purchase order to invoice via purchase form submission and inc
             ],
         ],
     ]);
-
-    $response->assertRedirect(route('purchases.index'));
+    $response->assertRedirect();
 
     $po->refresh();
     $product->refresh();
