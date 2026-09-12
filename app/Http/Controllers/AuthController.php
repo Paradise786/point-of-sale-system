@@ -30,8 +30,20 @@ class AuthController extends Controller
         if (Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password'], 'is_active' => true], $remember)) {
             $request->session()->regenerate();
 
-            return redirect()->intended(route('dashboard'))
-                ->with('success', 'Welcome back, '.Auth::user()->name.'!');
+            $user = Auth::user();
+            $target = route('dashboard');
+            if (! $user->isSuperAdmin() && ! $user->hasPermission('dashboard.view')) {
+                if ($user->hasPermission('pos.access')) {
+                    $target = route('pos.index');
+                } elseif ($user->hasPermission('sales.view')) {
+                    $target = route('sales.index');
+                } elseif ($user->hasPermission('products.view')) {
+                    $target = route('products.index');
+                }
+            }
+
+            return redirect()->intended($target)
+                ->with('success', 'Welcome back, '.$user->name.'!');
         }
 
         return back()->withErrors([

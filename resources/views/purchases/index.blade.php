@@ -9,10 +9,12 @@
             <p class="text-xs text-slate-500 mt-0.5">Procurement orders from vendors. Automatically increases inventory stock.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('purchases.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>New Purchase Order</span>
-            </a>
+            @if(auth()->user()?->hasPermission('purchases.create'))
+                <a href="{{ route('purchases.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>New Purchase Invoice</span>
+                </a>
+            @endif
         </div>
     </div>
 

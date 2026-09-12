@@ -9,14 +9,18 @@
             <p class="text-xs text-slate-500 mt-0.5">Manage products, pricing, barcodes, and stock levels.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('pos.index') }}" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-cart-shopping text-emerald-400"></i>
-                <span>Open POS</span>
-            </a>
-            <a href="{{ route('products.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Add Product</span>
-            </a>
+            @if(auth()->user()?->hasPermission('pos.access'))
+                <a href="{{ route('pos.index') }}" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-cart-shopping text-emerald-400"></i>
+                    <span>Open POS</span>
+                </a>
+            @endif
+            @if(auth()->user()?->hasPermission('products.create'))
+                <a href="{{ route('products.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Add Product</span>
+                </a>
+            @endif
         </div>
     </div>
 
@@ -124,16 +128,20 @@
                             </td>
                             <td class="px-5 py-4 text-right">
                                 <div class="flex items-center justify-end gap-1">
-                                    <a href="{{ route('products.edit', $product) }}" class="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition" title="Edit">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </a>
-                                    <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Delete">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
+                                    @if(auth()->user()?->hasPermission('products.edit'))
+                                        <a href="{{ route('products.edit', $product) }}" class="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition" title="Edit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                    @endif
+                                    @if(auth()->user()?->hasPermission('products.delete'))
+                                        <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Delete">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

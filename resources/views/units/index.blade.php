@@ -9,10 +9,12 @@
             <p class="text-xs text-slate-500 mt-0.5">Manage measurement units (Piece, Box, Carton, Dozen, Kg) and their conversions.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('units.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Add Unit</span>
-            </a>
+            @if(auth()->user()?->hasPermission('units.create'))
+                <a href="{{ route('units.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Add Unit</span>
+                </a>
+            @endif
         </div>
     </div>
 
@@ -78,16 +80,20 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('units.edit', $unit) }}" class="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition" title="Edit">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </a>
-                                    <form action="{{ route('units.destroy', $unit) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this unit?');" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Delete">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
+                                    @if(auth()->user()?->hasPermission('units.edit'))
+                                        <a href="{{ route('units.edit', $unit) }}" class="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition" title="Edit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                    @endif
+                                    @if(auth()->user()?->hasPermission('units.delete'))
+                                        <form action="{{ route('units.destroy', $unit) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this unit?');" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Delete">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

@@ -15,7 +15,7 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = User::with('role')->latest();
+        $query = User::with('roles')->latest();
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -25,7 +25,7 @@ class UserController extends Controller
         }
 
         if ($roleId = $request->input('role_id')) {
-            $query->where('role_id', $roleId);
+            $query->whereHas('roles', fn ($q) => $q->where('roles.id', $roleId));
         }
 
         if ($request->filled('status')) {
@@ -55,13 +55,19 @@ class UserController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role_id' => $validated['role_id'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
+
+        if (! empty($validated['role_id'])) {
+            $role = Role::find($validated['role_id']);
+            if ($role) {
+                $user->syncRoles([$role]);
+            }
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'User created successfully.');
@@ -92,7 +98,6 @@ class UserController extends Controller
         $userData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role_id' => $validated['role_id'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ];
 
@@ -101,6 +106,15 @@ class UserController extends Controller
         }
 
         $user->update($userData);
+
+        if (! empty($validated['role_id'])) {
+            $role = Role::find($validated['role_id']);
+            if ($role) {
+                $user->syncRoles([$role]);
+            }
+        } else {
+            $user->syncRoles([]);
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'User updated successfully.');
@@ -112,7 +126,7 @@ class UserController extends Controller
             return back()->with('error', 'You cannot delete your own account.');
         }
 
-        if ($user->isSuperAdmin() && User::whereHas('role', fn ($q) => $q->where('slug', 'super-admin'))->count() <= 1) {
+        if ($user->isSuperAdmin() && User::role(['super-admin', 'Super Admin'])->count() <= 1) {
             return back()->with('error', 'Cannot delete the only remaining Super Admin.');
         }
 

@@ -9,18 +9,24 @@
             <p class="text-xs text-slate-500 mt-0.5">Real-time stock balance calculated from total purchases and sales.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('stock.movements') }}" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>Movement History</span>
-            </a>
-            <button type="button" onclick="openAdjustmentModal()" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-sliders"></i>
-                <span>Manual Adjustment</span>
-            </button>
-            <a href="{{ route('purchases.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Restock / New Purchase</span>
-            </a>
+            @if(auth()->user()?->hasPermission('stock.movements') || auth()->user()?->hasPermission('stock.view'))
+                <a href="{{ route('stock.movements') }}" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Movement History</span>
+                </a>
+            @endif
+            @if(auth()->user()?->hasPermission('stock.adjust'))
+                <button type="button" onclick="openAdjustmentModal()" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Manual Adjustment</span>
+                </button>
+            @endif
+            @if(auth()->user()?->hasPermission('purchases.create'))
+                <a href="{{ route('purchases.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Restock / New Purchase</span>
+                </a>
+            @endif
         </div>
     </div>
 

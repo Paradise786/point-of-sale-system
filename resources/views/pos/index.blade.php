@@ -691,27 +691,106 @@
 
         let isCustomPaidAmount = false;
 
-        function updateCartQty(itemIndex, newQty) {
+        function stepCartQty(itemIndex, delta) {
             const item = cart[itemIndex];
             if (!item) return;
 
-            newQty = parseInt(newQty);
-            if (isNaN(newQty) || newQty <= 0) {
-                removeFromCart(itemIndex);
-                return;
+            let current = parseInt(item.quantity, 10) || 1;
+            let target = current + delta;
+
+            if (target < 1) {
+                target = 1;
             }
 
             const stock = parseFloat(item.stock) || 0;
             const conv = parseFloat(item.conversion_rate) || 1.0;
             const maxAllowed = conv > 0 ? Math.floor(stock / conv) : 9999;
-            if (maxAllowed > 0 && newQty > maxAllowed) {
+            if (maxAllowed > 0 && target > maxAllowed) {
                 alert(`Only ${stock} base units in stock (maximum ${maxAllowed} ${item.unit_name}).`);
-                item.quantity = maxAllowed;
-            } else {
-                item.quantity = newQty;
+                target = maxAllowed;
             }
 
+            item.quantity = target;
             renderCart();
+        }
+
+        function onCartQtyInput(inputEl, itemIndex) {
+            const item = cart[itemIndex];
+            if (!item) return;
+
+            const raw = inputEl.value.trim();
+            if (raw === '') return;
+
+            let val = parseInt(raw, 10);
+            if (isNaN(val) || val < 1) val = 1;
+
+            const stock = parseFloat(item.stock) || 0;
+            const conv = parseFloat(item.conversion_rate) || 1.0;
+            const maxAllowed = conv > 0 ? Math.floor(stock / conv) : 9999;
+            if (maxAllowed > 0 && val > maxAllowed) {
+                alert(`Only ${stock} base units in stock (maximum ${maxAllowed} ${item.unit_name}).`);
+                val = maxAllowed;
+                inputEl.value = val;
+            }
+
+            item.quantity = val;
+            updateLiveCartTotals();
+        }
+
+        function onCartQtyChange(inputEl, itemIndex) {
+            const item = cart[itemIndex];
+            if (!item) return;
+
+            const raw = inputEl.value.trim();
+            let val = parseInt(raw, 10);
+            if (isNaN(val) || val < 1) val = 1;
+
+            const stock = parseFloat(item.stock) || 0;
+            const conv = parseFloat(item.conversion_rate) || 1.0;
+            const maxAllowed = conv > 0 ? Math.floor(stock / conv) : 9999;
+            if (maxAllowed > 0 && val > maxAllowed) {
+                val = maxAllowed;
+            }
+
+            item.quantity = val;
+            renderCart();
+        }
+
+        function updateLiveCartTotals() {
+            let total = 0;
+            let totalQty = 0;
+
+            cart.forEach((item, index) => {
+                const qty = parseInt(item.quantity, 10) || 1;
+                const price = parseFloat(item.price) || 0;
+                const subtotal = qty * price;
+                total += subtotal;
+                totalQty += qty;
+
+                const subtotalEl = document.getElementById(`cart_subtotal_${index}`);
+                if (subtotalEl) {
+                    subtotalEl.innerText = 'Rs. ' + subtotal.toFixed(2);
+                }
+            });
+
+            const countEl = document.getElementById('cartItemsCount');
+            if (countEl) {
+                countEl.innerText = `${totalQty} units (${cart.length} items)`;
+            }
+
+            const totalEl = document.getElementById('cartTotalDisplay');
+            if (totalEl) {
+                totalEl.innerText = 'Rs. ' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            if (!isCustomPaidAmount || selectedPaymentMethod !== 'cash') {
+                const paidInput = document.getElementById('paidAmountInput');
+                if (paidInput) {
+                    paidInput.value = total.toFixed(2);
+                }
+            }
+
+            calculateChange();
         }
 
         function removeFromCart(itemIndex) {
@@ -740,6 +819,7 @@
                 document.getElementById('paidAmountInput').value = '';
                 document.getElementById('changeAmountDisplay').innerText = 'Rs. 0.00';
                 checkoutBtn.disabled = true;
+                calculateChange();
                 return;
             }
 
@@ -749,6 +829,8 @@
             let totalQty = 0;
 
             cart.forEach((item, index) => {
+                item.quantity = parseInt(item.quantity, 10) || 1;
+                item.price = parseFloat(item.price) || 0;
                 const subtotal = item.quantity * item.price;
                 total += subtotal;
                 totalQty += item.quantity;
@@ -757,13 +839,14 @@
                 if (item.available_units && item.available_units.length > 0) {
                     item.available_units.forEach(u => {
                         const isSelected = item.unit_id == u.unit_id ? 'selected' : '';
-                        unitOptionsHtml += `<option value="${u.unit_id}" ${isSelected}>${u.short_code} (Rs. ${u.sale_price.toFixed(0)})</option>`;
+                        const uSalePrice = parseFloat(u.sale_price) || 0;
+                        unitOptionsHtml += `<option value="${u.unit_id}" ${isSelected}>${u.short_code} (Rs. ${uSalePrice.toFixed(0)})</option>`;
                     });
                 } else {
                     unitOptionsHtml = `<option value="">${item.unit_code}</option>`;
                 }
 
-                const baseStockDeducted = item.quantity * item.conversion_rate;
+                const baseStockDeducted = item.quantity * (parseFloat(item.conversion_rate) || 1.0);
                 const convHint = item.conversion_rate > 1
                     ? `<span class="text-[10px] text-emerald-600 font-semibold block">≈ ${baseStockDeducted} pcs from stock</span>`
                     : '';
@@ -783,20 +866,22 @@
 
                         <!-- Quantity Stepper -->
                         <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity - 1})" class="w-6 h-6 flex items-center justify-center bg-white rounded text-slate-600 hover:text-rose-600 text-xs font-bold shadow-xs active:bg-slate-200 cursor-pointer">
+                            <button type="button" onclick="stepCartQty(${index}, -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded text-slate-600 hover:text-rose-600 text-xs font-bold shadow-xs active:bg-slate-200 cursor-pointer" title="Decrease Quantity (-1)">
                                 <i class="fa-solid fa-minus text-[10px]"></i>
                             </button>
-                            <input type="number" min="1" value="${item.quantity}" oninput="updateCartQty(${index}, this.value)" onchange="updateCartQty(${index}, this.value)"
-                                   class="w-9 text-center text-xs font-bold bg-white border border-slate-200 rounded py-0.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
-                            <button type="button" onclick="updateCartQty(${index}, ${item.quantity + 1})" class="w-6 h-6 flex items-center justify-center bg-white rounded text-slate-600 hover:text-emerald-600 text-xs font-bold shadow-xs active:bg-slate-200 cursor-pointer">
+                            <input type="number" min="1" id="cart_qty_input_${index}" value="${item.quantity}" 
+                                   oninput="onCartQtyInput(this, ${index})" 
+                                   onchange="onCartQtyChange(this, ${index})"
+                                   class="w-10 text-center text-xs font-bold bg-white border border-slate-200 rounded py-0.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <button type="button" onclick="stepCartQty(${index}, 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded text-slate-600 hover:text-emerald-600 text-xs font-bold shadow-xs active:bg-slate-200 cursor-pointer" title="Increase Quantity (+1)">
                                 <i class="fa-solid fa-plus text-[10px]"></i>
                             </button>
                         </div>
 
                         <!-- Subtotal -->
                         <div class="text-right min-w-[70px]">
-                            <span class="font-black text-xs text-slate-900 block">Rs. ${subtotal.toFixed(2)}</span>
-                            <button type="button" onclick="removeFromCart(${index})" class="text-[10px] text-slate-400 hover:text-rose-600 transition">
+                            <span class="font-black text-xs text-slate-900 block" id="cart_subtotal_${index}">Rs. ${subtotal.toFixed(2)}</span>
+                            <button type="button" onclick="removeFromCart(${index})" class="text-[10px] text-slate-400 hover:text-rose-600 transition font-medium">
                                 Remove
                             </button>
                         </div>
@@ -817,15 +902,29 @@
         }
 
         function getCartTotal() {
-            return cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+            return cart.reduce((sum, item) => sum + ((parseInt(item.quantity, 10) || 1) * (parseFloat(item.price) || 0)), 0);
         }
 
         function calculateChange() {
             const total = getCartTotal();
-            const paid = parseFloat(document.getElementById('paidAmountInput').value) || 0;
+            const paidInput = document.getElementById('paidAmountInput');
+            const paid = parseFloat(paidInput ? paidInput.value : 0) || 0;
             const changeDisplay = document.getElementById('changeAmountDisplay');
             const changeLabel = document.getElementById('changeLabel');
             const statusBadge = document.getElementById('livePaymentStatusBadge');
+
+            if (total === 0) {
+                if (changeLabel) changeLabel.innerText = 'Change Return (Rs.)';
+                if (changeDisplay) {
+                    changeDisplay.innerText = 'Rs. 0.00';
+                    changeDisplay.className = 'px-3 py-2 text-sm font-black text-slate-800 bg-slate-100 border border-slate-200 rounded-lg';
+                }
+                if (statusBadge) {
+                    statusBadge.innerText = 'Paid (Full)';
+                    statusBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+                }
+                return;
+            }
 
             if (paid >= total) {
                 const change = paid - total;

@@ -3,17 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role as SpatieRole;
 
-class Role extends Model
+class Role extends SpatieRole
 {
     use HasFactory;
 
     protected $fillable = [
         'name',
+        'guard_name',
         'slug',
         'description',
         'is_system',
@@ -23,29 +22,20 @@ class Role extends Model
         'is_system' => 'boolean',
     ];
 
-    public function permissions(): BelongsToMany
-    {
-        return $this->belongsToMany(Permission::class, 'permission_role')->withTimestamps();
-    }
-
-    public function users(): HasMany
-    {
-        return $this->hasMany(User::class);
-    }
-
     public function hasPermission(string $permissionSlug): bool
     {
         if ($this->slug === 'super-admin' || Str::slug($this->name) === 'super-admin') {
             return true;
         }
 
-        return $this->permissions->contains('slug', $permissionSlug);
+        return $this->hasPermissionTo($permissionSlug);
     }
 
     public static function createWithSlug(string $name, ?string $description = null, bool $isSystem = false): self
     {
         return self::create([
             'name' => $name,
+            'guard_name' => 'web',
             'slug' => Str::slug($name),
             'description' => $description,
             'is_system' => $isSystem,

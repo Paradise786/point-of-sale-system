@@ -8,9 +8,15 @@
             <h2 class="text-2xl font-black text-slate-800">Users Management</h2>
             <p class="text-xs text-slate-500 mt-0.5">Manage system operators, staff credentials, roles and access status.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3">
+            @if(auth()->user()?->hasPermission('permissions.view'))
+                <a href="{{ route('permissions.index') }}" class="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-key text-xs text-emerald-600"></i>
+                    <span>Permissions</span>
+                </a>
+            @endif
             @if(auth()->user()?->hasPermission('roles.view'))
-                <a href="{{ route('roles.index') }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition flex items-center gap-2">
+                <a href="{{ route('roles.index') }}" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition flex items-center gap-2">
                     <i class="fa-solid fa-shield-halved text-xs text-slate-500"></i>
                     <span>Manage Roles</span>
                 </a>

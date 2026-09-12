@@ -4,21 +4,19 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Str;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role_id',
         'is_active',
     ];
 
@@ -41,33 +39,17 @@ class User extends Authenticatable
         ];
     }
 
-    public function role(): BelongsTo
+    /**
+     * Backward-compatible accessor for single role reference.
+     */
+    public function getRoleAttribute(): ?Role
     {
-        return $this->belongsTo(Role::class);
+        return $this->roles->first();
     }
 
     public function isSuperAdmin(): bool
     {
-        if (! $this->role) {
-            return false;
-        }
-
-        return $this->role->slug === 'super-admin'
-            || Str::slug($this->role->name) === 'super-admin'
-            || strcasecmp($this->role->name, 'Super Admin') === 0;
-    }
-
-    public function hasRole(string|array $roles): bool
-    {
-        if (! $this->role) {
-            return false;
-        }
-
-        if (is_array($roles)) {
-            return in_array($this->role->slug, $roles, true) || in_array($this->role->name, $roles, true);
-        }
-
-        return $this->role->slug === $roles || $this->role->name === $roles;
+        return $this->hasRole(['super-admin', 'Super Admin']);
     }
 
     public function hasPermission(string $permissionSlug): bool
@@ -77,11 +59,27 @@ class User extends Authenticatable
             return true;
         }
 
-        if (! $this->role) {
-            return false;
+        // Aliases support
+        if ($permissionSlug === 'pos.terminal' || $permissionSlug === 'pos.access') {
+            return $this->hasAnyPermission(['pos.access', 'pos.terminal', 'pos.checkout']);
         }
 
-        // Check if role has the permission
-        return $this->role->permissions->contains('slug', $permissionSlug);
+        if ($permissionSlug === 'sales.return' || $permissionSlug === 'sale_returns.view') {
+            return $this->hasAnyPermission(['sales.return', 'sale_returns.view']);
+        }
+
+        if ($permissionSlug === 'purchases.return' || $permissionSlug === 'purchase_returns.view') {
+            return $this->hasAnyPermission(['purchases.return', 'purchase_returns.view']);
+        }
+
+        if ($permissionSlug === 'ledgers.view') {
+            return $this->hasAnyPermission(['ledgers.view', 'ledgers.customer', 'ledgers.vendor']);
+        }
+
+        try {
+            return $this->hasPermissionTo($permissionSlug);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

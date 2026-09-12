@@ -9,10 +9,12 @@
             <p class="text-xs text-slate-500 mt-0.5">Place orders with vendors. Stock remains unchanged until orders are received and converted to invoice.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('purchase-orders.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Create Purchase Order</span>
-            </a>
+            @if(auth()->user()?->hasPermission('purchase_orders.create'))
+                <a href="{{ route('purchase-orders.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Create Purchase Order</span>
+                </a>
+            @endif
         </div>
     </div>
 
@@ -147,11 +149,13 @@
                                             </a>
                                         @endif
                                     @elseif ($order->isPending())
-                                        <button type="button" onclick="openConvertModal('{{ $order->id }}', '{{ $order->po_number }}', '{{ $order->vendor->name ?? 'Vendor' }}', '{{ number_format($order->total_amount, 2) }}')"
-                                                class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
-                                            <i class="fa-solid fa-file-invoice"></i>
-                                            <span>Convert into Purchase</span>
-                                        </button>
+                                        @if(auth()->user()?->hasPermission('purchases.create') || auth()->user()?->hasPermission('purchase_orders.convert'))
+                                            <button type="button" onclick="openConvertModal('{{ $order->id }}', '{{ $order->po_number }}', '{{ $order->vendor->name ?? 'Vendor' }}', '{{ number_format($order->total_amount, 2) }}')"
+                                                    class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
+                                                <i class="fa-solid fa-file-invoice"></i>
+                                                <span>Convert into Purchase</span>
+                                            </button>
+                                        @endif
                                     @endif
                                 </div>
                             </td>

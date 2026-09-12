@@ -9,10 +9,12 @@
             <p class="text-xs text-slate-500 mt-0.5">Manage customer orders/quotations. Stock remains untouched until order is confirmed into a Sale Invoice.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('sale-orders.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Create Sale Order</span>
-            </a>
+            @if(auth()->user()?->hasPermission('sale_orders.create'))
+                <a href="{{ route('sale-orders.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Create Sale Order</span>
+                </a>
+            @endif
         </div>
     </div>
 
@@ -147,11 +149,13 @@
                                             </a>
                                         @endif
                                     @elseif ($order->isPending())
-                                        <button type="button" onclick="openConvertModal('{{ $order->id }}', '{{ $order->so_number }}', '{{ $order->customer->name ?? 'Walk-in Customer' }}', '{{ number_format($order->total_amount, 2) }}')"
-                                                class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
-                                            <i class="fa-solid fa-file-invoice-dollar"></i>
-                                            <span>Convert into Sale</span>
-                                        </button>
+                                        @if(auth()->user()?->hasPermission('sales.create') || auth()->user()?->hasPermission('sale_orders.convert'))
+                                            <button type="button" onclick="openConvertModal('{{ $order->id }}', '{{ $order->so_number }}', '{{ $order->customer->name ?? 'Walk-in Customer' }}', '{{ number_format($order->total_amount, 2) }}')"
+                                                    class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
+                                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                                                <span>Convert into Sale</span>
+                                            </button>
+                                        @endif
                                     @endif
                                 </div>
                             </td>

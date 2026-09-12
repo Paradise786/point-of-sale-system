@@ -16,13 +16,15 @@
                 <span>Print PO</span>
             </button>
             @if ($purchaseOrder->status === 'pending')
-                <form action="{{ route('purchase-orders.convert', $purchaseOrder) }}" method="POST" onsubmit="return confirm('Convert this PO to Purchase Invoice? Stock will increase automatically.');">
-                    @csrf
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-invoice"></i>
-                        <span>Receive Goods & Convert to Invoice</span>
-                    </button>
-                </form>
+                @if(auth()->user()?->hasPermission('purchases.create') || auth()->user()?->hasPermission('purchase_orders.convert'))
+                    <form action="{{ route('purchase-orders.convert', $purchaseOrder) }}" method="POST" onsubmit="return confirm('Convert this PO to Purchase Invoice? Stock will increase automatically.');">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            <span>Receive Goods & Convert to Invoice</span>
+                        </button>
+                    </form>
+                @endif
             @endif
         </div>
     </div>

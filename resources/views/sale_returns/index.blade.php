@@ -9,10 +9,12 @@
             <p class="text-xs text-slate-500 mt-0.5">Manage returned customer merchandise, issue refunds, and adjust inventory.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('sale-returns.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i>
-                <span>Create Sale Return</span>
-            </a>
+            @if(auth()->user()?->hasPermission('sale_returns.create') || auth()->user()?->hasPermission('sales.return'))
+                <a href="{{ route('sale-returns.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Create Sale Return</span>
+                </a>
+            @endif
         </div>
     </div>
 

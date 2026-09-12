@@ -9,10 +9,12 @@
             <p class="text-xs text-slate-500 mt-0.5">Return defective or excess merchandise to vendors and adjust inventory.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('purchase-returns.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i>
-                <span>Create Purchase Return</span>
-            </a>
+            @if(auth()->user()?->hasPermission('purchase_returns.create') || auth()->user()?->hasPermission('purchases.return'))
+                <a href="{{ route('purchase-returns.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Create Purchase Return</span>
+                </a>
+            @endif
         </div>
     </div>
 

@@ -16,18 +16,20 @@
                 <span>Print SO</span>
             </button>
             @if ($saleOrder->status === 'pending')
-                <form action="{{ route('sale-orders.convert', $saleOrder) }}" method="POST" onsubmit="return confirm('Confirm order and convert to Sale Invoice? Stock will be reduced.');" class="flex items-center gap-2">
-                    @csrf
-                    <select name="payment_method" class="px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg">
-                        <option value="cash">Cash</option>
-                        <option value="card">Card</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                    </select>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-check"></i>
-                        <span>Confirm & Generate Invoice</span>
-                    </button>
-                </form>
+                @if(auth()->user()?->hasPermission('sales.create') || auth()->user()?->hasPermission('sale_orders.convert'))
+                    <form action="{{ route('sale-orders.convert', $saleOrder) }}" method="POST" onsubmit="return confirm('Confirm order and convert to Sale Invoice? Stock will be reduced.');" class="flex items-center gap-2">
+                        @csrf
+                        <select name="payment_method" class="px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg">
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                        </select>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-check"></i>
+                            <span>Confirm & Generate Invoice</span>
+                        </button>
+                    </form>
+                @endif
             @endif
         </div>
     </div>

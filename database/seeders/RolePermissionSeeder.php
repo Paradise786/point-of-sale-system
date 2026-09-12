@@ -100,19 +100,83 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Edit User', 'slug' => 'users.edit', 'group' => 'User Management', 'description' => 'Can edit user details and change roles'],
             ['name' => 'Delete User', 'slug' => 'users.delete', 'group' => 'User Management', 'description' => 'Can delete or deactivate user accounts'],
 
-            // Roles & Permissions
-            ['name' => 'View Roles', 'slug' => 'roles.view', 'group' => 'Roles & Permissions', 'description' => 'Can view roles and permissions'],
-            ['name' => 'Create Role', 'slug' => 'roles.create', 'group' => 'Roles & Permissions', 'description' => 'Can define new custom roles'],
-            ['name' => 'Edit Role Permissions', 'slug' => 'roles.edit', 'group' => 'Roles & Permissions', 'description' => 'Can modify permissions assigned to roles'],
-            ['name' => 'Delete Role', 'slug' => 'roles.delete', 'group' => 'Roles & Permissions', 'description' => 'Can remove custom roles'],
+            // Roles Management
+            ['name' => 'View Roles', 'slug' => 'roles.view', 'group' => 'Roles & Matrix', 'description' => 'Can view roles and permissions matrix'],
+            ['name' => 'Create Role', 'slug' => 'roles.create', 'group' => 'Roles & Matrix', 'description' => 'Can define new custom roles and matrix presets'],
+            ['name' => 'Edit Role Permissions', 'slug' => 'roles.edit', 'group' => 'Roles & Matrix', 'description' => 'Can modify permissions assigned to roles'],
+            ['name' => 'Delete Role', 'slug' => 'roles.delete', 'group' => 'Roles & Matrix', 'description' => 'Can remove custom roles'],
+
+            // Permissions Manager
+            ['name' => 'View Permissions', 'slug' => 'permissions.view', 'group' => 'Permissions Manager', 'description' => 'Can view full permissions list & modules'],
+            ['name' => 'Create Permission', 'slug' => 'permissions.create', 'group' => 'Permissions Manager', 'description' => 'Can register new capability slugs & modules'],
+            ['name' => 'Edit Permission', 'slug' => 'permissions.edit', 'group' => 'Permissions Manager', 'description' => 'Can modify permission metadata and groups'],
+            ['name' => 'Delete Permission', 'slug' => 'permissions.delete', 'group' => 'Permissions Manager', 'description' => 'Can delete custom permissions from system'],
+
+            // Global System Capabilities (from screenshot reference)
+            ['name' => 'Allow access to time sheet', 'slug' => 'timesheet.access', 'group' => 'System Options', 'description' => 'If checked user with this role will be able to see time sheet of other users'],
+            ['name' => 'Allow access to People area', 'slug' => 'people.access', 'group' => 'System Options', 'description' => 'People list and Allocations report'],
+            ['name' => 'Has Effort', 'slug' => 'effort.access', 'group' => 'System Options', 'description' => 'Has effort estimation tracking'],
+            ['name' => 'Can change owner', 'slug' => 'owner.change', 'group' => 'System Options', 'description' => 'Can change owner (edit permissions required)'],
+            ['name' => 'Can prioritize', 'slug' => 'priority.change', 'group' => 'System Options', 'description' => 'Can prioritize (edit permissions required)'],
+
+            // Entities (Project, Release, Iteration, User Story, Task, Defect, Feature, Program, Build, Time)
+            ['name' => 'View Project', 'slug' => 'project.view', 'group' => 'Project', 'description' => 'View projects'],
+            ['name' => 'Add Project', 'slug' => 'project.create', 'group' => 'Project', 'description' => 'Create projects'],
+            ['name' => 'Edit Project', 'slug' => 'project.edit', 'group' => 'Project', 'description' => 'Edit projects'],
+            ['name' => 'Delete Project', 'slug' => 'project.delete', 'group' => 'Project', 'description' => 'Delete projects'],
+
+            ['name' => 'View Release', 'slug' => 'release.view', 'group' => 'Release', 'description' => 'View releases'],
+            ['name' => 'Add Release', 'slug' => 'release.create', 'group' => 'Release', 'description' => 'Create releases'],
+            ['name' => 'Edit Release', 'slug' => 'release.edit', 'group' => 'Release', 'description' => 'Edit releases'],
+            ['name' => 'Delete Release', 'slug' => 'release.delete', 'group' => 'Release', 'description' => 'Delete releases'],
+
+            ['name' => 'View Iteration', 'slug' => 'iteration.view', 'group' => 'Iteration', 'description' => 'View iterations'],
+            ['name' => 'Add Iteration', 'slug' => 'iteration.create', 'group' => 'Iteration', 'description' => 'Create iterations'],
+            ['name' => 'Edit Iteration', 'slug' => 'iteration.edit', 'group' => 'Iteration', 'description' => 'Edit iterations'],
+            ['name' => 'Delete Iteration', 'slug' => 'iteration.delete', 'group' => 'Iteration', 'description' => 'Delete iterations'],
+
+            ['name' => 'View User Story', 'slug' => 'user_story.view', 'group' => 'User Story', 'description' => 'View user stories'],
+            ['name' => 'Add User Story', 'slug' => 'user_story.create', 'group' => 'User Story', 'description' => 'Create user stories'],
+            ['name' => 'Edit User Story', 'slug' => 'user_story.edit', 'group' => 'User Story', 'description' => 'Edit user stories'],
+            ['name' => 'Delete User Story', 'slug' => 'user_story.delete', 'group' => 'User Story', 'description' => 'Delete user stories'],
+
+            ['name' => 'View Task', 'slug' => 'task.view', 'group' => 'Task', 'description' => 'View tasks'],
+            ['name' => 'Add Task', 'slug' => 'task.create', 'group' => 'Task', 'description' => 'Create tasks'],
+            ['name' => 'Edit Task', 'slug' => 'task.edit', 'group' => 'Task', 'description' => 'Edit tasks'],
+            ['name' => 'Delete Task', 'slug' => 'task.delete', 'group' => 'Task', 'description' => 'Delete tasks'],
+
+            ['name' => 'View Time', 'slug' => 'time.view', 'group' => 'Time', 'description' => 'View time entries'],
+            ['name' => 'Add Time', 'slug' => 'time.create', 'group' => 'Time', 'description' => 'Log time entries'],
+            ['name' => 'Edit Time', 'slug' => 'time.edit', 'group' => 'Time', 'description' => 'Edit time entries'],
+            ['name' => 'Delete Time', 'slug' => 'time.delete', 'group' => 'Time', 'description' => 'Delete time entries'],
+
+            ['name' => 'View Defect', 'slug' => 'defect.view', 'group' => 'Defect', 'description' => 'View defects/bugs'],
+            ['name' => 'Add Defect', 'slug' => 'defect.create', 'group' => 'Defect', 'description' => 'Log defect'],
+            ['name' => 'Edit Defect', 'slug' => 'defect.edit', 'group' => 'Defect', 'description' => 'Edit defect'],
+            ['name' => 'Delete Defect', 'slug' => 'defect.delete', 'group' => 'Defect', 'description' => 'Delete defect'],
+
+            ['name' => 'View Feature', 'slug' => 'feature.view', 'group' => 'Feature', 'description' => 'View features'],
+            ['name' => 'Add Feature', 'slug' => 'feature.create', 'group' => 'Feature', 'description' => 'Create features'],
+            ['name' => 'Edit Feature', 'slug' => 'feature.edit', 'group' => 'Feature', 'description' => 'Edit features'],
+            ['name' => 'Delete Feature', 'slug' => 'feature.delete', 'group' => 'Feature', 'description' => 'Delete features'],
+
+            ['name' => 'View Program', 'slug' => 'program.view', 'group' => 'Program', 'description' => 'View programs'],
+            ['name' => 'Add Program', 'slug' => 'program.create', 'group' => 'Program', 'description' => 'Create programs'],
+            ['name' => 'Edit Program', 'slug' => 'program.edit', 'group' => 'Program', 'description' => 'Edit programs'],
+            ['name' => 'Delete Program', 'slug' => 'program.delete', 'group' => 'Program', 'description' => 'Delete programs'],
+
+            ['name' => 'View Build', 'slug' => 'build.view', 'group' => 'Build', 'description' => 'View builds'],
+            ['name' => 'Add Build', 'slug' => 'build.create', 'group' => 'Build', 'description' => 'Create builds'],
+            ['name' => 'Edit Build', 'slug' => 'build.edit', 'group' => 'Build', 'description' => 'Edit builds'],
+            ['name' => 'Delete Build', 'slug' => 'build.delete', 'group' => 'Build', 'description' => 'Delete builds'],
         ];
 
         $permissionModels = [];
         foreach ($permissionsList as $p) {
             $permissionModels[$p['slug']] = Permission::firstOrCreate(
-                ['slug' => $p['slug']],
+                ['name' => $p['slug'], 'guard_name' => 'web'],
                 [
-                    'name' => $p['name'],
+                    'slug' => $p['slug'],
                     'group' => $p['group'],
                     'description' => $p['description'],
                 ]
@@ -121,53 +185,53 @@ class RolePermissionSeeder extends Seeder
 
         // 2. Create Roles
         $superAdminRole = Role::firstOrCreate(
-            ['slug' => 'super-admin'],
+            ['name' => 'Super Admin', 'guard_name' => 'web'],
             [
-                'name' => 'Super Admin',
+                'slug' => 'super-admin',
                 'description' => 'Full unrestricted system access with automatic bypass of all permission restrictions.',
                 'is_system' => true,
             ]
         );
 
         $adminRole = Role::firstOrCreate(
-            ['slug' => 'admin'],
+            ['name' => 'Admin / Manager', 'guard_name' => 'web'],
             [
-                'name' => 'Admin / Manager',
+                'slug' => 'admin',
                 'description' => 'General business operations manager with access to inventory, sales, purchases, and reporting.',
                 'is_system' => true,
             ]
         );
 
         $cashierRole = Role::firstOrCreate(
-            ['slug' => 'cashier'],
+            ['name' => 'Cashier', 'guard_name' => 'web'],
             [
-                'name' => 'Cashier',
+                'slug' => 'cashier',
                 'description' => 'Front-counter sales operator restricted to POS terminal, customer management, and sale receipts.',
                 'is_system' => false,
             ]
         );
 
         $inventoryRole = Role::firstOrCreate(
-            ['slug' => 'inventory-manager'],
+            ['name' => 'Inventory Manager', 'guard_name' => 'web'],
             [
-                'name' => 'Inventory Manager',
+                'slug' => 'inventory-manager',
                 'description' => 'Responsible for stocks, goods receiving purchases, supplier orders, and barcode generation.',
                 'is_system' => false,
             ]
         );
 
         // 3. Assign Permissions
-        // Super Admin gets all permissions attached in pivot as well (and bypasses in code)
-        $superAdminRole->permissions()->sync(array_values(array_map(fn ($p) => $p->id, $permissionModels)));
+        // Super Admin gets all permissions
+        $superAdminRole->syncPermissions(Permission::all());
 
         // Admin gets all operational modules
-        $adminPermissions = Permission::whereNotIn('slug', [
+        $adminPermissions = Permission::whereNotIn('name', [
             'roles.create', 'roles.delete', 'users.delete',
-        ])->pluck('id')->toArray();
-        $adminRole->permissions()->sync($adminPermissions);
+        ])->get();
+        $adminRole->syncPermissions($adminPermissions);
 
         // Cashier permissions
-        $cashierPermissions = Permission::whereIn('slug', [
+        $cashierPermissions = Permission::whereIn('name', [
             'dashboard.view',
             'pos.access',
             'pos.checkout',
@@ -183,11 +247,11 @@ class RolePermissionSeeder extends Seeder
             'customers.view',
             'customers.create',
             'products.view',
-        ])->pluck('id')->toArray();
-        $cashierRole->permissions()->sync($cashierPermissions);
+        ])->get();
+        $cashierRole->syncPermissions($cashierPermissions);
 
         // Inventory Manager permissions
-        $inventoryPermissions = Permission::whereIn('slug', [
+        $inventoryPermissions = Permission::whereIn('name', [
             'dashboard.view',
             'products.view',
             'products.create',
@@ -214,28 +278,28 @@ class RolePermissionSeeder extends Seeder
             'vendors.view',
             'vendors.create',
             'vendors.edit',
-        ])->pluck('id')->toArray();
-        $inventoryRole->permissions()->sync($inventoryPermissions);
+        ])->get();
+        $inventoryRole->syncPermissions($inventoryPermissions);
 
         // 4. Create Default Super Admin & Demo Cashier Users
-        User::firstOrCreate(
+        $adminUser = User::firstOrCreate(
             ['email' => 'admin@smartpos.com'],
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('password123'),
-                'role_id' => $superAdminRole->id,
                 'is_active' => true,
             ]
         );
+        $adminUser->syncRoles([$superAdminRole]);
 
-        User::firstOrCreate(
+        $cashierUser = User::updateOrCreate(
             ['email' => 'cashier@smartpos.com'],
             [
-                'name' => 'Bilal Cashier',
+                'name' => 'Afeera Cashier',
                 'password' => Hash::make('password123'),
-                'role_id' => $cashierRole->id,
                 'is_active' => true,
             ]
         );
+        $cashierUser->syncRoles([$cashierRole]);
     }
 }
